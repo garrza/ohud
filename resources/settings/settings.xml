@@ -18,6 +18,9 @@
             <listEntry value="0">@Strings.ThemeDeepSpace</listEntry>
             <listEntry value="1">@Strings.ThemePhosphor</listEntry>
             <listEntry value="2">@Strings.ThemeWhite</listEntry>
+            <listEntry value="3">@Strings.ThemeRedTactical</listEntry>
+            <listEntry value="4">@Strings.ThemeAmberRetro</listEntry>
+            <listEntry value="5">@Strings.ThemeSolarFlare</listEntry>
         </settingConfig>
     </setting>
     <setting propertyKey="@Properties.ShowReserve" title="@Strings.ShowReserveLabel">
@@ -48,6 +51,24 @@
         <settingConfig type="boolean" />
     </setting>
     <setting propertyKey="@Properties.ShowTemp" title="@Strings.ShowTempLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowResp" title="@Strings.ShowRespLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowVO2" title="@Strings.ShowVO2Label">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowReady" title="@Strings.ShowReadyLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowHRV" title="@Strings.ShowHRVLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowSleep" title="@Strings.ShowSleepLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowRecov" title="@Strings.ShowRecovLabel">
         <settingConfig type="boolean" />
     </setting>
 </settings>

@@ -12,4 +12,10 @@
     <property id="ShowAtmo" type="boolean">true</property>
     <property id="ShowPress" type="boolean">true</property>
     <property id="ShowTemp" type="boolean">true</property>
+    <property id="ShowResp" type="boolean">true</property>
+    <property id="ShowVO2" type="boolean">true</property>
+    <property id="ShowReady" type="boolean">true</property>
+    <property id="ShowHRV" type="boolean">true</property>
+    <property id="ShowSleep" type="boolean">true</property>
+    <property id="ShowRecov" type="boolean">true</property>
 </properties>

@@ -8,6 +8,9 @@
     <string id="ThemeDeepSpace">Deep Space</string>
     <string id="ThemePhosphor">Phosphor Green</string>
     <string id="ThemeWhite">White Minimal</string>
+    <string id="ThemeRedTactical">Red Tactical</string>
+    <string id="ThemeAmberRetro">Amber Retro</string>
+    <string id="ThemeSolarFlare">Solar Flare</string>
     <string id="ShowReserveLabel">Show Body Battery</string>
     <string id="ShowBurnLabel">Show Calories</string>
     <string id="ShowElevLabel">Show Floors</string>
@@ -18,4 +21,10 @@
     <string id="ShowAtmoLabel">Show Weather</string>
     <string id="ShowPressLabel">Show Pressure</string>
     <string id="ShowTempLabel">Show Temperature</string>
+    <string id="ShowRespLabel">Show Respiration</string>
+    <string id="ShowVO2Label">Show VO2 Max</string>
+    <string id="ShowReadyLabel">Show Readiness</string>
+    <string id="ShowHRVLabel">Show HRV</string>
+    <string id="ShowSleepLabel">Show Sleep</string>
+    <string id="ShowRecovLabel">Show Recovery</string>
 </strings>

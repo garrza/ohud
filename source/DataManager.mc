@@ -14,17 +14,23 @@ module DataManager {
     // ── Settings ──
     var dateFormat as Number = 0;          // 0=stardate, 1=standard
     var cycleInterval as Number = 10;      // seconds
-    var themeId as Number = 0;             // 0=deep space, 1=phosphor, 2=white
+    var themeId as Number = 0;             // 0-5
 
     // ── Theme Color Arrays ──
     // Index: [primary, secondary, tertiary, warning, critical, dim, textSecondary]
     const THEME_COLORS = [
-        // Deep Space
+        // 0: Deep Space
         [0x00FFFF, 0xAA55FF, 0x00FF55, 0xFFAA00, 0xFF0000, 0x555555, 0xAAAAAA],
-        // Phosphor Green
+        // 1: Phosphor Green
         [0x00FF00, 0x00AA55, 0x55FF00, 0xFFAA00, 0xFF0000, 0x555555, 0xAAAAAA],
-        // White Minimal
+        // 2: White Minimal
         [0xFFFFFF, 0xAAAAAA, 0xFFFFFF, 0xFFAA00, 0xFF0000, 0x555555, 0x555555],
+        // 3: Red Tactical
+        [0xFF0000, 0xFF5500, 0xFF5555, 0xFFAA00, 0xFF55FF, 0x555555, 0xAAAAAA],
+        // 4: Amber Retro
+        [0xFFAA00, 0xAA5500, 0xFFFF00, 0xFF5500, 0xFF0000, 0x555555, 0xAAAAAA],
+        // 5: Solar Flare
+        [0xFF5500, 0xFFAA00, 0xFFFF00, 0xFFAA55, 0xFF0000, 0x555555, 0xAAAAAA],
     ];
 
     const CLR_PRIMARY = 0;
@@ -36,19 +42,20 @@ module DataManager {
     const CLR_TEXT_SEC = 6;
 
     // ── Tier 2 Cycling ──
-    // All possible tier2 slot keys, in order
     const TIER2_KEYS = [
         "ShowReserve", "ShowBurn", "ShowElev", "ShowRange", "ShowActive",
-        "ShowAlt", "ShowSol", "ShowAtmo", "ShowPress", "ShowTemp"
+        "ShowAlt", "ShowSol", "ShowAtmo", "ShowPress", "ShowTemp",
+        "ShowResp", "ShowVO2", "ShowReady", "ShowHRV", "ShowSleep", "ShowRecov"
     ];
     const TIER2_LABELS = [
         "RESERVE", "BURN", "ELEV", "RANGE", "ACTIVE",
-        "ALT", "SOL", "ATMO", "PRESS", "TEMP"
+        "ALT", "SOL", "ATMO", "PRESS", "TEMP",
+        "RESP", "VO2", "READY", "HRV", "SLEEP", "RECOV"
     ];
 
-    var tier2EnabledIndices as Array<Number> = [];  // indices into TIER2_KEYS that are enabled
-    var tier2Current as Number = 0;                 // index into tier2EnabledIndices
-    var tier2Counter as Number = 0;                 // seconds counter for cycling
+    var tier2EnabledIndices as Array<Number> = [];
+    var tier2Current as Number = 0;
+    var tier2Counter as Number = 0;
 
     // ── Cached Data ──
     var cachedBattery as Number = 0;
@@ -59,13 +66,12 @@ module DataManager {
     var cachedSpO2 as Number = 0;
 
     // ── ECG Sparkline ──
-    // Synthetic ECG waveform pattern (20 points, normalized 0-1)
     const ECG_PATTERN = [
         0.1, 0.1, 0.12, 0.1, 0.15, 0.1, 0.08,
         0.1, 0.3, 0.9, 0.2, 0.05, 0.15, 0.25,
         0.2, 0.12, 0.1, 0.1, 0.1, 0.1
     ];
-    var ecgOffset as Number = 0;  // animation offset for high power
+    var ecgOffset as Number = 0;
 
     function loadSettings() as Void {
         var app = Application.getApp();
@@ -88,7 +94,6 @@ module DataManager {
             }
         }
         if (tier2EnabledIndices.size() == 0) {
-            // Always show at least RESERVE
             tier2EnabledIndices.add(0);
         }
         if (tier2Current >= tier2EnabledIndices.size()) {
@@ -98,7 +103,7 @@ module DataManager {
 
     function getColor(role as Number) as Number {
         var t = themeId;
-        if (t < 0 || t > 2) { t = 0; }
+        if (t < 0 || t > 5) { t = 0; }
         return (THEME_COLORS[t] as Array<Number>)[role];
     }
 
@@ -133,9 +138,7 @@ module DataManager {
                     cachedStress = sample.data.toNumber();
                 }
             }
-        } catch (e) {
-            // SensorHistory may not be available
-        }
+        } catch (e) {}
         return cachedStress;
     }
 
@@ -148,13 +151,11 @@ module DataManager {
                     cachedSpO2 = sample.data.toNumber();
                 }
             }
-        } catch (e) {
-            // SensorHistory may not be available
-        }
+        } catch (e) {}
         return cachedSpO2;
     }
 
-    // ── Tier 2 Data ──
+    // ── Tier 2 Cycling ──
 
     function advanceTier2() as Void {
         if (tier2EnabledIndices.size() > 0) {
@@ -171,7 +172,6 @@ module DataManager {
                 advanceTier2();
             }
         } else {
-            // Low power: advance every onUpdate call (once per minute)
             advanceTier2();
         }
     }
@@ -199,12 +199,17 @@ module DataManager {
             case 7: return fetchWeather();
             case 8: return fetchPressure();
             case 9: return fetchTemperature();
+            case 10: return fetchRespRate();
+            case 11: return fetchVO2Max();
+            case 12: return fetchReadiness();
+            case 13: return fetchHRV();
+            case 14: return fetchSleep();
+            case 15: return fetchRecoveryTime();
         }
         return "--";
     }
 
     function getCurrentTier2BarValue() as Float? {
-        // Only RESERVE (body battery) shows a bar, 0-100
         var idx = getCurrentTier2Index();
         if (idx == 0) {
             try {
@@ -219,6 +224,8 @@ module DataManager {
         }
         return null;
     }
+
+    // ── Tier 2 Fetch Functions ──
 
     function fetchBodyBattery() as String {
         try {
@@ -252,7 +259,6 @@ module DataManager {
     function fetchDistance() as String {
         var info = ActivityMonitor.getInfo();
         if (info.distance != null) {
-            // distance is in cm, convert to km
             var km = (info.distance as Number).toFloat() / 100000.0;
             return km.format("%.1f") + " km";
         }
@@ -322,7 +328,6 @@ module DataManager {
             if (iter != null) {
                 var sample = iter.next();
                 if (sample != null && sample.data != null) {
-                    // Pressure in Pa, convert to hPa
                     var hpa = (sample.data.toFloat() / 100.0).toNumber();
                     return hpa.toString() + " hPa";
                 }
@@ -344,6 +349,53 @@ module DataManager {
         return "--C";
     }
 
+    function fetchRespRate() as String {
+        // Respiration rate — not available on all devices
+        try {
+            var info = ActivityMonitor.getInfo();
+            if (info has :respirationRate && info.respirationRate != null) {
+                return (info.respirationRate as Number).toString() + " brpm";
+            }
+        } catch (e) {}
+        return "-- brpm";
+    }
+
+    function fetchVO2Max() as String {
+        // VO2 max — available via ActivityMonitor on some devices
+        try {
+            var info = ActivityMonitor.getInfo();
+            if (info has :vo2maxRunning && info.vo2maxRunning != null) {
+                return (info.vo2maxRunning as Number).toString();
+            }
+        } catch (e) {}
+        return "--";
+    }
+
+    function fetchReadiness() as String {
+        // Training readiness — not available in standard CIQ API
+        return "--";
+    }
+
+    function fetchHRV() as String {
+        // HRV not available in standard CIQ watch face API
+        return "-- ms";
+    }
+
+    function fetchSleep() as String {
+        // Sleep data not easily available in CIQ watch face
+        return "-- h";
+    }
+
+    function fetchRecoveryTime() as String {
+        try {
+            var info = ActivityMonitor.getInfo();
+            if (info has :timeToRecovery && info.timeToRecovery != null) {
+                return (info.timeToRecovery as Number).toString() + " h";
+            }
+        } catch (e) {}
+        return "-- h";
+    }
+
     // ── Helpers ──
 
     function formatNumber(n as Number) as String {
@@ -356,11 +408,10 @@ module DataManager {
     }
 
     function getHrZoneColor(hr as Number) as Number {
-        // Simple zone estimation based on typical max HR
         if (hr <= 0) { return getColor(CLR_DIM); }
-        if (hr < 100) { return getColor(CLR_DIM); }       // resting
-        if (hr < 140) { return getColor(CLR_PRIMARY); }    // Z1-2
-        if (hr < 160) { return getColor(CLR_WARNING); }    // Z3
-        return getColor(CLR_CRITICAL);                      // Z4-5
+        if (hr < 100) { return getColor(CLR_DIM); }
+        if (hr < 140) { return getColor(CLR_PRIMARY); }
+        if (hr < 160) { return getColor(CLR_WARNING); }
+        return getColor(CLR_CRITICAL);
     }
 }
