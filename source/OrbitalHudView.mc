@@ -19,13 +19,10 @@ class OrbitalHudView extends WatchUi.WatchFace {
     // ── Custom fonts ──
     private var _timeFontLg as Graphics.FontType = Graphics.FONT_NUMBER_HOT;
     private var _timeFontSm as Graphics.FontType = Graphics.FONT_SMALL;
+    private var _dataFont as Graphics.FontType = Graphics.FONT_XTINY;
     private var _fTimeLg as Number = 42;
     private var _fTimeSm as Number = 20;
-
-    // ── System font metrics (cached) ──
-    private var _fSmall as Number = 22;
-    private var _fTiny as Number = 16;
-    private var _fXtiny as Number = 13;
+    private var _fData as Number = 14;
 
     // ── Seconds clip region ──
     private var _ssX as Number = 0;
@@ -46,20 +43,10 @@ class OrbitalHudView extends WatchUi.WatchFace {
         // Load custom fonts
         _timeFontLg = WatchUi.loadResource(Rez.Fonts.TimeFontLg) as Graphics.FontType;
         _timeFontSm = WatchUi.loadResource(Rez.Fonts.TimeFontSm) as Graphics.FontType;
+        _dataFont = WatchUi.loadResource(Rez.Fonts.DataFont) as Graphics.FontType;
         _fTimeLg = dc.getFontHeight(_timeFontLg);
         _fTimeSm = dc.getFontHeight(_timeFontSm);
-
-        _fSmall = dc.getFontHeight(Graphics.FONT_SMALL);
-        _fTiny = dc.getFontHeight(Graphics.FONT_TINY);
-        _fXtiny = dc.getFontHeight(Graphics.FONT_XTINY);
-
-        // Pre-compute seconds clip region
-        var gap = 3;
-        var minsY = _cy + gap;
-        _ssX = _cx + (_w * 0.15).toNumber();
-        _ssY = minsY + _fTimeLg - _fTimeSm - 2;
-        _ssW = (_w * 0.14).toNumber();
-        _ssH = _fTimeSm + 4;
+        _fData = dc.getFontHeight(_dataFont);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -82,13 +69,15 @@ class OrbitalHudView extends WatchUi.WatchFace {
         drawBatteryArc(dc);
         drawStepsArc(dc);
         drawCornerBrackets(dc);
-        drawScanLine(dc);
         drawDate(dc);
+        drawSeparator(dc, 40);
+        drawRow1(dc);
+        drawEcgWave(dc, 35, 61, _w - 70, 5);
+        drawTier2Grid(dc);
+        drawScanLines(dc);
         drawTime(dc);
-        drawLeftStrip(dc);
-        drawRightStrip(dc);
-        drawStepCount(dc);
-        drawAnnunciators(dc);
+        drawSeparator(dc, 199);
+        drawBottomBar(dc);
     }
 
     function onPartialUpdate(dc as Graphics.Dc) as Void {
@@ -111,10 +100,275 @@ class OrbitalHudView extends WatchUi.WatchFace {
     //  DRAWING FUNCTIONS
     // ══════════════════════════════════════════
 
+    // ── Date (top center, Orbitron 14) ──
+    private function drawDate(dc as Graphics.Dc) as Void {
+        var now = Time.now();
+        var info = Gregorian.info(now, Time.FORMAT_SHORT);
+        var dateStr;
+        if (DataManager.dateFormat == 0) {
+            var doy = computeDayOfYear(info.year as Number, info.month as Number, info.day as Number);
+            dateStr = (info.year as Number).toString() + "." + doy.format("%03d");
+        } else {
+            var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+            var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+            dateStr = months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + days[(info.day_of_week as Number) - 1];
+        }
+        dc.setColor(DataManager.getColor(DataManager.CLR_TEXT_SEC), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_cx, 28, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
+    }
+
+    private function computeDayOfYear(year as Number, month as Number, day as Number) as Number {
+        var daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+            daysInMonth[1] = 29;
+        }
+        var doy = 0;
+        for (var i = 0; i < month - 1; i++) { doy += daysInMonth[i]; }
+        doy += day;
+        return doy;
+    }
+
+    // ── Dashed separator line ──
+    private function drawSeparator(dc as Graphics.Dc, y as Number) as Void {
+        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        // Calculate visible width at this Y for round display
+        var margin = getHorizontalMargin(y);
+        var x1 = margin + 8;
+        var x2 = _w - margin - 8;
+        var dashLen = 4;
+        var gapLen = 4;
+        var x = x1;
+        while (x < x2) {
+            var endX = x + dashLen;
+            if (endX > x2) { endX = x2; }
+            dc.drawLine(x, y, endX, y);
+            x += dashLen + gapLen;
+        }
+    }
+
+    // ── Row 1: Always-on biometrics (HR, Stress, SpO2) ──
+    private function drawRow1(dc as Graphics.Dc) as Void {
+        var y = 43;
+        var margin = getHorizontalMargin(y + _fData / 2);
+        var usableW = _w - 2 * margin - 16;
+        var cellW = usableW / 3;
+        var baseX = margin + 8;
+
+        var clrPri = DataManager.getColor(DataManager.CLR_PRIMARY);
+
+        // HR: ♥ + value
+        var hr = DataManager.cachedHR;
+        var hrStr = hr > 0 ? hr.toString() : "--";
+        dc.setColor(DataManager.getHrZoneColor(hr), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(baseX, y, _dataFont, DataManager.ICON_HR + hrStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Stress: ⚡ + value
+        var stress = DataManager.cachedStress;
+        var strStr = stress > 0 ? stress.toString() : "--";
+        var strColor = stress > 50 ? DataManager.getColor(DataManager.CLR_WARNING) : clrPri;
+        dc.setColor(strColor, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(baseX + cellW, y, _dataFont, DataManager.ICON_STRESS + strStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // SpO2: ◎ + value
+        var spo2 = DataManager.cachedSpO2;
+        var o2Str = spo2 > 0 ? spo2.toString() + "%" : "--%";
+        var o2Color = (spo2 > 0 && spo2 < 90) ? DataManager.getColor(DataManager.CLR_CRITICAL) : clrPri;
+        dc.setColor(o2Color, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(baseX + cellW * 2, y, _dataFont, DataManager.ICON_SPO2 + o2Str, Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // ── ECG Waveform ──
+    private function drawEcgWave(dc as Graphics.Dc, x as Number, y as Number, w as Number, h as Number) as Void {
+        var points = DataManager.ECG_PATTERN.size();
+        var stepX = w.toFloat() / (points - 1).toFloat();
+        var offset = _isHighPower ? DataManager.ecgOffset : 0;
+        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        for (var i = 0; i < points - 1; i++) {
+            var idx1 = (i + offset) % points;
+            var idx2 = (i + 1 + offset) % points;
+            var v1 = (DataManager.ECG_PATTERN as Array<Float>)[idx1];
+            var v2 = (DataManager.ECG_PATTERN as Array<Float>)[idx2];
+            var x1 = x + (i * stepX).toNumber();
+            var y1 = y + h - (v1 * h).toNumber();
+            var x2 = x + ((i + 1) * stepX).toNumber();
+            var y2 = y + h - (v2 * h).toNumber();
+            dc.drawLine(x1, y1, x2, y2);
+        }
+    }
+
+    // ── Tier2 Grid (rows 2-4 above and below time) ──
+    private function drawTier2Grid(dc as Graphics.Dc) as Void {
+        var pageItems = DataManager.getTier2PageItems();
+        var count = pageItems.size();
+        if (count == 0) { return; }
+
+        // Row Y positions: above time and below time
+        var rowYs = [68, 160, 183];
+        var rowIdx = 0;
+
+        for (var i = 0; i < count && rowIdx < 3; i += 3) {
+            var y = rowYs[rowIdx] as Number;
+            // How many items in this row
+            var rowCount = count - i;
+            if (rowCount > 3) { rowCount = 3; }
+            drawTier2Row(dc, y, pageItems, i, rowCount);
+            rowIdx++;
+        }
+
+        // Draw page indicator dots if multiple pages
+        if (DataManager.getTier2PageCount() > 1) {
+            drawPageDots(dc, 210);
+        }
+    }
+
+    private function drawTier2Row(dc as Graphics.Dc, y as Number, items as Array<Number>,
+            startIdx as Number, count as Number) as Void {
+        var margin = getHorizontalMargin(y + _fData / 2);
+        var usableW = _w - 2 * margin - 16;
+        var cellW = usableW / 3;
+        var baseX = margin + 8;
+
+        var clrPri = DataManager.getColor(DataManager.CLR_PRIMARY);
+        dc.setColor(clrPri, Graphics.COLOR_TRANSPARENT);
+
+        for (var i = 0; i < count; i++) {
+            var itemIdx = items[startIdx + i];
+            var icon = DataManager.getTier2Icon(itemIdx);
+            var value = DataManager.getTier2Value(itemIdx);
+            dc.drawText(baseX + cellW * i, y, _dataFont, icon + value, Graphics.TEXT_JUSTIFY_LEFT);
+        }
+    }
+
+    // ── Scan Lines (wings around time) ──
+    private function drawScanLines(dc as Graphics.Dc) as Void {
+        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+
+        // Top scan line wings at y=88
+        var y1 = 88;
+        var m1 = getHorizontalMargin(y1);
+        // Left wing
+        dc.drawLine(m1 + 8, y1, m1 + 28, y1);
+        dc.drawLine(m1 + 32, y1, m1 + 36, y1);
+        // Right wing
+        dc.drawLine(_w - m1 - 36, y1, _w - m1 - 32, y1);
+        dc.drawLine(_w - m1 - 28, y1, _w - m1 - 8, y1);
+
+        // Bottom scan line wings at y=155
+        var y2 = 155;
+        var m2 = getHorizontalMargin(y2);
+        // Left wing
+        dc.drawLine(m2 + 8, y2, m2 + 28, y2);
+        dc.drawLine(m2 + 32, y2, m2 + 36, y2);
+        // Right wing
+        dc.drawLine(_w - m2 - 36, y2, _w - m2 - 32, y2);
+        dc.drawLine(_w - m2 - 28, y2, _w - m2 - 8, y2);
+    }
+
+    // ── Inline Time (HH:MM centered + :SS to the right) ──
+    private function drawTime(dc as Graphics.Dc) as Void {
+        var clockTime = System.getClockTime();
+        var hour = clockTime.hour;
+        if (!System.getDeviceSettings().is24Hour) {
+            if (hour == 0) { hour = 12; }
+            else if (hour > 12) { hour = hour - 12; }
+        }
+
+        var timeStr = hour.format("%02d") + ":" + clockTime.min.format("%02d");
+        var timeY = 97;
+
+        // Draw HH:MM centered
+        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_cx, timeY, _timeFontLg, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
+
+        // Seconds positioned at right edge of time text
+        var timeDims = dc.getTextDimensions(timeStr, _timeFontLg);
+        var timeW = timeDims[0];
+        _ssX = _cx + timeW / 2 + 2;
+        _ssY = timeY + _fTimeLg - _fTimeSm - 2;
+        _ssW = 40;
+        _ssH = _fTimeSm + 4;
+
+        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+    }
+
+    // ── Bottom Bar: Steps + Annunciator Dots ──
+    private function drawBottomBar(dc as Graphics.Dc) as Void {
+        var y = 204;
+        var margin = getHorizontalMargin(y + _fData / 2);
+        var lx = margin + 8;
+
+        // ● icon + step count (single drawText)
+        dc.setColor(DataManager.getColor(DataManager.CLR_SECONDARY), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(lx, y, _dataFont, DataManager.ICON_STEPS + DataManager.formatNumber(DataManager.cachedSteps), Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Annunciator dots (right side)
+        var rx = _w - margin - 8;
+        drawAnnunciatorDots(dc, rx, y + _fData / 2);
+    }
+
+    // ── Annunciator Dots (5 colored dots) ──
+    private function drawAnnunciatorDots(dc as Graphics.Dc, rx as Number, cy as Number) as Void {
+        var settings = System.getDeviceSettings();
+        var spacing = 10;
+        var startX = rx - 4 * spacing;
+
+        // BT
+        var btActive = settings.phoneConnected;
+        dc.setColor(btActive ? DataManager.getColor(DataManager.CLR_PRIMARY) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        if (btActive) { dc.fillCircle(startX, cy, 3); } else { dc.drawCircle(startX, cy, 2); }
+
+        // NTF
+        var ntfActive = settings.notificationCount > 0;
+        dc.setColor(ntfActive ? Graphics.COLOR_WHITE : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        if (ntfActive) { dc.fillCircle(startX + spacing, cy, 3); } else { dc.drawCircle(startX + spacing, cy, 2); }
+
+        // DND
+        var dndActive = settings.doNotDisturb;
+        dc.setColor(dndActive ? DataManager.getColor(DataManager.CLR_SECONDARY) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        if (dndActive) { dc.fillCircle(startX + spacing * 2, cy, 3); } else { dc.drawCircle(startX + spacing * 2, cy, 2); }
+
+        // ALM
+        var almActive = settings.alarmCount > 0;
+        dc.setColor(almActive ? DataManager.getColor(DataManager.CLR_WARNING) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        if (almActive) { dc.fillCircle(startX + spacing * 3, cy, 3); } else { dc.drawCircle(startX + spacing * 3, cy, 2); }
+
+        // MOV
+        var movActive = false;
+        try {
+            var amInfo = ActivityMonitor.getInfo();
+            if (amInfo.moveBarLevel != null) { movActive = (amInfo.moveBarLevel as Number) > 0; }
+        } catch (e) {}
+        dc.setColor(movActive ? DataManager.getColor(DataManager.CLR_CRITICAL) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        if (movActive) { dc.fillCircle(startX + spacing * 4, cy, 3); } else { dc.drawCircle(startX + spacing * 4, cy, 2); }
+    }
+
+    // ── Page Indicator Dots ──
+    private function drawPageDots(dc as Graphics.Dc, y as Number) as Void {
+        var pages = DataManager.getTier2PageCount();
+        if (pages <= 1) { return; }
+        var spacing = 8;
+        var totalW = (pages - 1) * spacing;
+        var startX = _cx - totalW / 2;
+        for (var i = 0; i < pages; i++) {
+            var dx = startX + i * spacing;
+            if (i == DataManager.tier2Current) {
+                dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(dx, y, 2);
+            } else {
+                dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+                dc.fillCircle(dx, y, 1);
+            }
+        }
+    }
+
     // ── Corner Brackets (HUD frame) ──
     private function drawCornerBrackets(dc as Graphics.Dc) as Void {
-        var inset = (_w * 0.12).toNumber();
-        var len = (_w * 0.07).toNumber();
+        var inset = 24;
+        var len = 14;
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
         // Top-left
@@ -129,76 +383,6 @@ class OrbitalHudView extends WatchUi.WatchFace {
         // Bottom-right
         dc.drawLine(_w - inset, _h - inset, _w - inset - len, _h - inset);
         dc.drawLine(_w - inset, _h - inset, _w - inset, _h - inset - len);
-    }
-
-    // ── Horizontal scan line at center (HUD horizon) ──
-    private function drawScanLine(dc as Graphics.Dc) as Void {
-        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        // Left wing — from left edge area to near center
-        dc.drawLine((_w * 0.10).toNumber(), _cy, (_w * 0.38).toNumber(), _cy);
-        // Right wing — from near center to right edge area
-        dc.drawLine((_w * 0.62).toNumber(), _cy, (_w * 0.90).toNumber(), _cy);
-    }
-
-    // ── Date (top center) ──
-    private function drawDate(dc as Graphics.Dc) as Void {
-        var now = Time.now();
-        var info = Gregorian.info(now, Time.FORMAT_SHORT);
-        var dateStr;
-        if (DataManager.dateFormat == 0) {
-            var doy = computeDayOfYear(info.year as Number, info.month as Number, info.day as Number);
-            dateStr = (info.year as Number).toString() + "." + doy.format("%03d");
-        } else {
-            var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-            var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-            dateStr = months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + days[(info.day_of_week as Number) - 1];
-        }
-        var dateY = (_h * 0.14).toNumber();
-        dc.setColor(DataManager.getColor(DataManager.CLR_TEXT_SEC), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, dateY, Graphics.FONT_XTINY, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    private function computeDayOfYear(year as Number, month as Number, day as Number) as Number {
-        var daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
-            daysInMonth[1] = 29;
-        }
-        var doy = 0;
-        for (var i = 0; i < month - 1; i++) { doy += daysInMonth[i]; }
-        doy += day;
-        return doy;
-    }
-
-    // ── Stacked Time (HH / rule / MM, :SS to the right) ──
-    private function drawTime(dc as Graphics.Dc) as Void {
-        var clockTime = System.getClockTime();
-        var hour = clockTime.hour;
-        if (!System.getDeviceSettings().is24Hour) {
-            if (hour == 0) { hour = 12; }
-            else if (hour > 12) { hour = hour - 12; }
-        }
-
-        var hourStr = hour.format("%02d");
-        var minStr = clockTime.min.format("%02d");
-
-        // Stacked: hours above center line, minutes below
-        var gap = 3;
-        var hoursY = _cy - gap - _fTimeLg;
-        var minsY = _cy + gap;
-
-        // Hours
-        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, hoursY, _timeFontLg, hourStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Minutes
-        dc.drawText(_cx, minsY, _timeFontLg, minStr, Graphics.TEXT_JUSTIFY_CENTER);
-
-        // Seconds: smaller custom font, right of minutes, bottom-aligned
-        _ssX = _cx + (_w * 0.15).toNumber();
-        _ssY = minsY + _fTimeLg - _fTimeSm - 2;
-        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
     }
 
     // ── Battery Arc (outer ring) ──
@@ -281,162 +465,13 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
     }
 
-    // ── Left Strip (Biometrics column) ──
-    private function drawLeftStrip(dc as Graphics.Dc) as Void {
-        var lx = (_w * 0.10).toNumber();
-        var y = (_h * 0.28).toNumber();
-        var colW = (_w * 0.26).toNumber();
-
-        // PULSE label with underline
-        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, Graphics.FONT_XTINY, "PULSE", Graphics.TEXT_JUSTIFY_LEFT);
-        y += _fXtiny;
-        dc.setPenWidth(1);
-        dc.drawLine(lx, y, lx + colW, y);
-        y += 3;
-
-        // HR value
-        var hr = DataManager.cachedHR;
-        var hrStr = hr > 0 ? hr.toString() : "--";
-        dc.setColor(DataManager.getHrZoneColor(hr), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, Graphics.FONT_SMALL, hrStr, Graphics.TEXT_JUSTIFY_LEFT);
-        y += _fSmall + 1;
-
-        // ECG sparkline
-        var ecgH = 8;
-        drawEcgWave(dc, lx, y, colW, ecgH);
-        y += ecgH + 4;
-
-        // STR (stress)
-        var stress = DataManager.cachedStress;
-        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, Graphics.FONT_XTINY, "STR " + (stress > 0 ? stress.toString() : "--"), Graphics.TEXT_JUSTIFY_LEFT);
-        y += _fXtiny + 1;
-
-        // Stress bar
-        var stressPct = stress > 0 ? stress.toFloat() / 100.0 : 0.0;
-        var barColor = stress > 50 ? DataManager.getColor(DataManager.CLR_WARNING) : DataManager.getColor(DataManager.CLR_PRIMARY);
-        DrawUtils.drawProgressBar(dc, lx, y, colW, 2, stressPct, barColor, DataManager.getColor(DataManager.CLR_DIM));
-        y += 5;
-
-        // O2 (SpO2)
-        var spo2 = DataManager.cachedSpO2;
-        var o2Str = spo2 > 0 ? spo2.toString() + "%" : "--%";
-        var o2Color = (spo2 > 0 && spo2 < 90) ? DataManager.getColor(DataManager.CLR_CRITICAL) : DataManager.getColor(DataManager.CLR_DIM);
-        dc.setColor(o2Color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, Graphics.FONT_XTINY, "O2 " + o2Str, Graphics.TEXT_JUSTIFY_LEFT);
-    }
-
-    // ── ECG Waveform ──
-    private function drawEcgWave(dc as Graphics.Dc, x as Number, y as Number, w as Number, h as Number) as Void {
-        var points = DataManager.ECG_PATTERN.size();
-        var stepX = w.toFloat() / (points - 1).toFloat();
-        var offset = _isHighPower ? DataManager.ecgOffset : 0;
-        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(1);
-        for (var i = 0; i < points - 1; i++) {
-            var idx1 = (i + offset) % points;
-            var idx2 = (i + 1 + offset) % points;
-            var v1 = (DataManager.ECG_PATTERN as Array<Float>)[idx1];
-            var v2 = (DataManager.ECG_PATTERN as Array<Float>)[idx2];
-            var x1 = x + (i * stepX).toNumber();
-            var y1 = y + h - (v1 * h).toNumber();
-            var x2 = x + ((i + 1) * stepX).toNumber();
-            var y2 = y + h - (v2 * h).toNumber();
-            dc.drawLine(x1, y1, x2, y2);
-        }
-    }
-
-    // ── Right Strip (Cycling Tier 2 column) ──
-    private function drawRightStrip(dc as Graphics.Dc) as Void {
-        var rx = (_w * 0.90).toNumber();  // right edge anchor
-        var y = (_h * 0.28).toNumber();
-        var colW = (_w * 0.26).toNumber();
-        var lx = rx - colW;
-
-        // Label with underline
-        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(rx, y, Graphics.FONT_XTINY, DataManager.getCurrentTier2Label(), Graphics.TEXT_JUSTIFY_RIGHT);
-        y += _fXtiny;
-        dc.setPenWidth(1);
-        dc.drawLine(lx, y, rx, y);
-        y += 3;
-
-        // Value
-        dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(rx, y, Graphics.FONT_SMALL, DataManager.getCurrentTier2Value(), Graphics.TEXT_JUSTIFY_RIGHT);
-        y += _fSmall + 2;
-
-        // Bar (if applicable)
-        var barVal = DataManager.getCurrentTier2BarValue();
-        if (barVal != null) {
-            DrawUtils.drawProgressBar(dc, lx, y, colW, 2, barVal,
-                DataManager.getColor(DataManager.CLR_TERTIARY),
-                DataManager.getColor(DataManager.CLR_DIM));
-            y += 5;
-        } else {
-            y += 3;
-        }
-
-        // Cycle dots (right-aligned)
-        drawCycleIndicator(dc, rx, y + 2);
-    }
-
-    // ── Cycle Indicator Dots ──
-    private function drawCycleIndicator(dc as Graphics.Dc, rx as Number, y as Number) as Void {
-        var count = DataManager.tier2EnabledIndices.size();
-        if (count <= 1) { return; }
-        var spacing = count <= 8 ? 6 : 4;
-        var totalW = (count - 1) * spacing;
-        var startX = rx - totalW;
-        for (var i = 0; i < count; i++) {
-            var dx = startX + i * spacing;
-            if (i == DataManager.tier2Current) {
-                dc.setColor(Graphics.COLOR_WHITE, Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, y, 2);
-            } else {
-                dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, y, 1);
-            }
-        }
-    }
-
-    // ── Step Count (below time block) ──
-    private function drawStepCount(dc as Graphics.Dc) as Void {
-        var stepStr = DataManager.formatNumber(DataManager.cachedSteps);
-        var y = _cy + 3 + _fTimeLg + 3;
-        dc.setColor(DataManager.getColor(DataManager.CLR_SECONDARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, y, Graphics.FONT_XTINY, stepStr + " stp", Graphics.TEXT_JUSTIFY_CENTER);
-    }
-
-    // ── Annunciator Nodes (bottom) ──
-    private function drawAnnunciators(dc as Graphics.Dc) as Void {
-        var settings = System.getDeviceSettings();
-        var y = _cy + 3 + _fTimeLg + _fXtiny + (_h * 0.06).toNumber();
-        var spacing = (_w * 0.12).toNumber();
-        var startX = _cx - spacing * 2;
-
-        // BT
-        DrawUtils.drawStatusNode(dc, startX, y, "BT", settings.phoneConnected,
-            DataManager.getColor(DataManager.CLR_PRIMARY), DataManager.getColor(DataManager.CLR_DIM), null);
-        // NTF
-        var ntfCount = settings.notificationCount;
-        DrawUtils.drawStatusNode(dc, startX + spacing, y, "NTF", ntfCount > 0,
-            Graphics.COLOR_WHITE, DataManager.getColor(DataManager.CLR_DIM),
-            ntfCount > 0 ? ntfCount.toString() : null);
-        // DND
-        DrawUtils.drawStatusNode(dc, startX + spacing * 2, y, "DND", settings.doNotDisturb,
-            DataManager.getColor(DataManager.CLR_SECONDARY), DataManager.getColor(DataManager.CLR_DIM), null);
-        // ALM
-        DrawUtils.drawStatusNode(dc, startX + spacing * 3, y, "ALM", settings.alarmCount > 0,
-            DataManager.getColor(DataManager.CLR_WARNING), DataManager.getColor(DataManager.CLR_DIM), null);
-        // MOV
-        var movLevel = 0;
-        try {
-            var amInfo = ActivityMonitor.getInfo();
-            if (amInfo.moveBarLevel != null) { movLevel = amInfo.moveBarLevel as Number; }
-        } catch (e) {}
-        DrawUtils.drawStatusNode(dc, startX + spacing * 4, y, "MOV", movLevel > 0,
-            DataManager.getColor(DataManager.CLR_CRITICAL), DataManager.getColor(DataManager.CLR_DIM), null);
+    // ── Helper: horizontal margin for round display at given Y ──
+    // Returns the X distance from edge to the chord at height Y
+    private function getHorizontalMargin(y as Number) as Number {
+        var r = _w / 2;
+        var dy = (y - _cy).abs();
+        if (dy >= r) { return r; }
+        var chord = Math.sqrt((r * r - dy * dy).toFloat()).toNumber();
+        return r - chord;
     }
 }

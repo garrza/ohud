@@ -1,4 +1,5 @@
 <fonts>
-    <font id="TimeFontLg" filename="orbitron_42.fnt" filter="0123456789" antialias="false" />
-    <font id="TimeFontSm" filename="orbitron_20.fnt" filter="0123456789:" antialias="false" />
+    <font id="TimeFontLg" filename="departure_33.fnt" filter="0123456789:" antialias="false" />
+    <font id="TimeFontSm" filename="departure_11.fnt" filter="0123456789:" antialias="false" />
+    <font id="DataFont" filename="departure_11.fnt" filter="ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 %.:/-,°♥⚡◎■♨▲→★⛰☀☁◆∼≈⚛✓⌇☽♻●↑↓○─" antialias="false" />
 </fonts>

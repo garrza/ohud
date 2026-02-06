@@ -41,21 +41,30 @@ module DataManager {
     const CLR_DIM = 5;
     const CLR_TEXT_SEC = 6;
 
-    // ── Tier 2 Cycling ──
+    // ── Tier 2 Definitions ──
     const TIER2_KEYS = [
         "ShowReserve", "ShowBurn", "ShowElev", "ShowRange", "ShowActive",
         "ShowAlt", "ShowSol", "ShowAtmo", "ShowPress", "ShowTemp",
         "ShowResp", "ShowVO2", "ShowReady", "ShowHRV", "ShowSleep", "ShowRecov"
     ];
-    const TIER2_LABELS = [
-        "RESERVE", "BURN", "ELEV", "RANGE", "ACTIVE",
-        "ALT", "SOL", "ATMO", "PRESS", "TEMP",
-        "RESP", "VO2", "READY", "HRV", "SLEEP", "RECOV"
+
+    // Icon glyphs from Departure Mono for each tier2 item
+    const TIER2_ICONS = [
+        "\u25A0", "\u2668", "\u25B2", "\u2192", "\u2605",
+        "\u26F0", "\u2600", "\u2601", "\u25C6", "\u223C",
+        "\u2248", "\u269B", "\u2713", "\u2307", "\u263D", "\u267B"
     ];
 
+    // Row 1 icons (always-on biometrics)
+    const ICON_HR = "\u2665";
+    const ICON_STRESS = "\u26A1";
+    const ICON_SPO2 = "\u25CE";
+    const ICON_STEPS = "\u25CF";
+
     var tier2EnabledIndices as Array<Number> = [];
-    var tier2Current as Number = 0;
+    var tier2Current as Number = 0;    // current PAGE index (not item index)
     var tier2Counter as Number = 0;
+    const TIER2_PAGE_SIZE = 9;
 
     // ── Cached Data ──
     var cachedBattery as Number = 0;
@@ -96,7 +105,7 @@ module DataManager {
         if (tier2EnabledIndices.size() == 0) {
             tier2EnabledIndices.add(0);
         }
-        if (tier2Current >= tier2EnabledIndices.size()) {
+        if (tier2Current >= getTier2PageCount()) {
             tier2Current = 0;
         }
     }
@@ -105,6 +114,78 @@ module DataManager {
         var t = themeId;
         if (t < 0 || t > 5) { t = 0; }
         return (THEME_COLORS[t] as Array<Number>)[role];
+    }
+
+    // ── Tier 2 Paging ──
+
+    function getTier2PageCount() as Number {
+        var total = tier2EnabledIndices.size();
+        if (total == 0) { return 1; }
+        return (total + TIER2_PAGE_SIZE - 1) / TIER2_PAGE_SIZE;
+    }
+
+    // Returns the list of enabled tier2 indices for the current page
+    function getTier2PageItems() as Array<Number> {
+        var items = [] as Array<Number>;
+        var total = tier2EnabledIndices.size();
+        var startIdx = tier2Current * TIER2_PAGE_SIZE;
+        var endIdx = startIdx + TIER2_PAGE_SIZE;
+        if (endIdx > total) { endIdx = total; }
+        for (var i = startIdx; i < endIdx; i++) {
+            items.add(tier2EnabledIndices[i]);
+        }
+        return items;
+    }
+
+    function advanceTier2() as Void {
+        var pages = getTier2PageCount();
+        if (pages > 1) {
+            tier2Current = (tier2Current + 1) % pages;
+        }
+        tier2Counter = 0;
+    }
+
+    function tickCycle(isHighPower as Boolean) as Void {
+        if (getTier2PageCount() <= 1) { return; }
+        if (isHighPower) {
+            tier2Counter++;
+            if (tier2Counter >= cycleInterval) {
+                advanceTier2();
+            }
+        } else {
+            advanceTier2();
+        }
+    }
+
+    // Get the value string for a tier2 item by its global index
+    function getTier2Value(idx as Number) as String {
+        switch (idx) {
+            case 0: return fetchBodyBattery();
+            case 1: return fetchCalories();
+            case 2: return fetchFloors();
+            case 3: return fetchDistance();
+            case 4: return fetchActiveMinutes();
+            case 5: return fetchAltitude();
+            case 6: return fetchSunTimes();
+            case 7: return fetchWeather();
+            case 8: return fetchPressure();
+            case 9: return fetchTemperature();
+            case 10: return fetchRespRate();
+            case 11: return fetchVO2Max();
+            case 12: return fetchReadiness();
+            case 13: return fetchHRV();
+            case 14: return fetchSleep();
+            case 15: return fetchRecoveryTime();
+        }
+        return "--";
+    }
+
+    // Get the icon glyph for a tier2 item
+    function getTier2Icon(idx as Number) as String {
+        if (idx >= 0 && idx < TIER2_ICONS.size()) {
+            return (TIER2_ICONS as Array<String>)[idx];
+        }
+        return "\u25CF";
     }
 
     // ── Data Fetch ──
@@ -155,77 +236,7 @@ module DataManager {
         return cachedSpO2;
     }
 
-    // ── Tier 2 Cycling ──
-
-    function advanceTier2() as Void {
-        if (tier2EnabledIndices.size() > 0) {
-            tier2Current = (tier2Current + 1) % tier2EnabledIndices.size();
-            tier2Counter = 0;
-        }
-    }
-
-    function tickCycle(isHighPower as Boolean) as Void {
-        if (tier2EnabledIndices.size() <= 1) { return; }
-        if (isHighPower) {
-            tier2Counter++;
-            if (tier2Counter >= cycleInterval) {
-                advanceTier2();
-            }
-        } else {
-            advanceTier2();
-        }
-    }
-
-    function getCurrentTier2Index() as Number {
-        if (tier2EnabledIndices.size() == 0) { return 0; }
-        return tier2EnabledIndices[tier2Current];
-    }
-
-    function getCurrentTier2Label() as String {
-        var idx = getCurrentTier2Index();
-        return TIER2_LABELS[idx];
-    }
-
-    function getCurrentTier2Value() as String {
-        var idx = getCurrentTier2Index();
-        switch (idx) {
-            case 0: return fetchBodyBattery();
-            case 1: return fetchCalories();
-            case 2: return fetchFloors();
-            case 3: return fetchDistance();
-            case 4: return fetchActiveMinutes();
-            case 5: return fetchAltitude();
-            case 6: return fetchSunTimes();
-            case 7: return fetchWeather();
-            case 8: return fetchPressure();
-            case 9: return fetchTemperature();
-            case 10: return fetchRespRate();
-            case 11: return fetchVO2Max();
-            case 12: return fetchReadiness();
-            case 13: return fetchHRV();
-            case 14: return fetchSleep();
-            case 15: return fetchRecoveryTime();
-        }
-        return "--";
-    }
-
-    function getCurrentTier2BarValue() as Float? {
-        var idx = getCurrentTier2Index();
-        if (idx == 0) {
-            try {
-                var iter = SensorHistory.getBodyBatteryHistory({:period => 1});
-                if (iter != null) {
-                    var sample = iter.next();
-                    if (sample != null && sample.data != null) {
-                        return sample.data.toFloat() / 100.0;
-                    }
-                }
-            } catch (e) {}
-        }
-        return null;
-    }
-
-    // ── Tier 2 Fetch Functions ──
+    // ── Tier 2 Fetch Functions (short format for grid) ──
 
     function fetchBodyBattery() as String {
         try {
@@ -243,26 +254,26 @@ module DataManager {
     function fetchCalories() as String {
         var info = ActivityMonitor.getInfo();
         if (info.calories != null) {
-            return formatNumber(info.calories as Number) + " kcal";
+            return formatCompact(info.calories as Number);
         }
-        return "-- kcal";
+        return "--";
     }
 
     function fetchFloors() as String {
         var info = ActivityMonitor.getInfo();
         if (info.floorsClimbed != null) {
-            return "^ " + (info.floorsClimbed as Number).toString();
+            return (info.floorsClimbed as Number).toString();
         }
-        return "^ --";
+        return "--";
     }
 
     function fetchDistance() as String {
         var info = ActivityMonitor.getInfo();
         if (info.distance != null) {
             var km = (info.distance as Number).toFloat() / 100000.0;
-            return km.format("%.1f") + " km";
+            return km.format("%.1f");
         }
-        return "-- km";
+        return "--";
     }
 
     function fetchActiveMinutes() as String {
@@ -271,11 +282,11 @@ module DataManager {
             if (info.activeMinutesDay != null) {
                 var mins = info.activeMinutesDay;
                 if (mins.total != null) {
-                    return (mins.total as Number).toString() + " min";
+                    return (mins.total as Number).toString();
                 }
             }
         } catch (e) {}
-        return "-- min";
+        return "--";
     }
 
     function fetchAltitude() as String {
@@ -284,11 +295,11 @@ module DataManager {
             if (iter != null) {
                 var sample = iter.next();
                 if (sample != null && sample.data != null) {
-                    return sample.data.toNumber().toString() + "m";
+                    return sample.data.toNumber().toString() + "M";
                 }
             }
         } catch (e) {}
-        return "--m";
+        return "--M";
     }
 
     function fetchSunTimes() as String {
@@ -298,18 +309,13 @@ module DataManager {
                 var loc = cond.observationLocationPosition;
                 var now = Time.now();
                 var rise = Weather.getSunrise(loc, now);
-                var set_ = Weather.getSunset(loc, now);
-                if (rise != null && set_ != null) {
+                if (rise != null) {
                     var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                    var sInfo = Gregorian.info(set_, Time.FORMAT_SHORT);
-                    return Lang.format("^$1$:$2$ v$3$:$4$", [
-                        rInfo.hour.format("%02d"), rInfo.min.format("%02d"),
-                        sInfo.hour.format("%02d"), sInfo.min.format("%02d")
-                    ]);
+                    return (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
                 }
             }
         } catch (e) {}
-        return "^--:-- v--:--";
+        return "--:--";
     }
 
     function fetchWeather() as String {
@@ -329,11 +335,11 @@ module DataManager {
                 var sample = iter.next();
                 if (sample != null && sample.data != null) {
                     var hpa = (sample.data.toFloat() / 100.0).toNumber();
-                    return hpa.toString() + " hPa";
+                    return hpa.toString();
                 }
             }
         } catch (e) {}
-        return "-- hPa";
+        return "--";
     }
 
     function fetchTemperature() as String {
@@ -350,18 +356,16 @@ module DataManager {
     }
 
     function fetchRespRate() as String {
-        // Respiration rate — not available on all devices
         try {
             var info = ActivityMonitor.getInfo();
             if (info has :respirationRate && info.respirationRate != null) {
-                return (info.respirationRate as Number).toString() + " brpm";
+                return (info.respirationRate as Number).toString();
             }
         } catch (e) {}
-        return "-- brpm";
+        return "--";
     }
 
     function fetchVO2Max() as String {
-        // VO2 max — available via ActivityMonitor on some devices
         try {
             var info = ActivityMonitor.getInfo();
             if (info has :vo2maxRunning && info.vo2maxRunning != null) {
@@ -372,28 +376,25 @@ module DataManager {
     }
 
     function fetchReadiness() as String {
-        // Training readiness — not available in standard CIQ API
         return "--";
     }
 
     function fetchHRV() as String {
-        // HRV not available in standard CIQ watch face API
-        return "-- ms";
+        return "--";
     }
 
     function fetchSleep() as String {
-        // Sleep data not easily available in CIQ watch face
-        return "-- h";
+        return "--";
     }
 
     function fetchRecoveryTime() as String {
         try {
             var info = ActivityMonitor.getInfo();
             if (info has :timeToRecovery && info.timeToRecovery != null) {
-                return (info.timeToRecovery as Number).toString() + " h";
+                return (info.timeToRecovery as Number).toString() + "H";
             }
         } catch (e) {}
-        return "-- h";
+        return "--H";
     }
 
     // ── Helpers ──
@@ -403,6 +404,15 @@ module DataManager {
             var thousands = n / 1000;
             var remainder = (n % 1000);
             return thousands.toString() + "," + remainder.format("%03d");
+        }
+        return n.toString();
+    }
+
+    // Compact format: 1234 -> "1.2K", 12345 -> "12.3K"
+    function formatCompact(n as Number) as String {
+        if (n >= 1000) {
+            var k = n.toFloat() / 1000.0;
+            return k.format("%.1f") + "K";
         }
         return n.toString();
     }

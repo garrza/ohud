@@ -10,10 +10,10 @@ class OrbitalHudDelegate extends WatchUi.WatchFaceDelegate {
 
     function onPress(clickEvent as WatchUi.ClickEvent) as Lang.Boolean {
         var coords = clickEvent.getCoordinates();
-        var x = coords[0];
-        var screenW = System.getDeviceSettings().screenWidth;
-        // Tap on right 40% of screen advances cycling strip
-        if (x > screenW * 0.6) {
+        var y = coords[1];
+        var screenH = System.getDeviceSettings().screenHeight;
+        // Tap on bottom half advances tier2 page
+        if (y > screenH / 2) {
             DataManager.advanceTier2();
             WatchUi.requestUpdate();
             return true;
@@ -22,6 +22,5 @@ class OrbitalHudDelegate extends WatchUi.WatchFaceDelegate {
     }
 
     function onPowerBudgetExceeded(powerInfo as WatchUi.WatchFacePowerInfo) as Void {
-        // Disable partial updates if power budget exceeded
     }
 }
