@@ -208,10 +208,10 @@ class OrbitalHudView extends WatchUi.WatchFace {
         // Fill amount
         var fillDeg = (battery.toFloat() / 100.0 * 360.0).toNumber();
 
-        // Draw unfilled portion (dark hairline)
+        // Draw unfilled portion (full dark hairline ring)
         dc.setPenWidth(1);
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
+        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 91);
 
         // Draw filled portion
         if (fillDeg > 0) {
@@ -246,7 +246,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
 
         // "PWR" label at 12 o'clock outside ring
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, 2, Graphics.FONT_XTINY, "PWR", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(_cx, (_h * 0.01).toNumber(), Graphics.FONT_XTINY, "PWR", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // ── Steps Arc (inner ring) ──
@@ -259,10 +259,10 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var pct = steps.toFloat() / goal.toFloat();
         if (pct > 2.0) { pct = 2.0; } // cap at 200%
 
-        // Draw unfilled ring
+        // Draw unfilled ring (full dark hairline circle)
         dc.setPenWidth(1);
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
+        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 91);
 
         var arcColor = DataManager.getColor(DataManager.CLR_SECONDARY);
 
@@ -299,7 +299,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
 
         // "STP" label at 12 o'clock, offset from PWR
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, 14, Graphics.FONT_XTINY, "STP", Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(_cx, (_h * 0.05).toNumber(), Graphics.FONT_XTINY, "STP", Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     // ── Step Count (near inner ring) ──
