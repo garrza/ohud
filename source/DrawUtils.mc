@@ -63,15 +63,16 @@ module DrawUtils {
         var baseY = tipY - (size * Math.sin(backAngle)).toNumber();
 
         var halfSize = size / 2;
-        var pts = [
-            [tipX, tipY],
-            [baseX + (halfSize * Math.cos(perpAngle1)).toNumber(),
-             baseY - (halfSize * Math.sin(perpAngle1)).toNumber()],
-            [baseX + (halfSize * Math.cos(perpAngle2)).toNumber(),
-             baseY - (halfSize * Math.sin(perpAngle2)).toNumber()]
-        ];
+        var p1x = baseX + (halfSize * Math.cos(perpAngle1)).toNumber();
+        var p1y = baseY - (halfSize * Math.sin(perpAngle1)).toNumber();
+        var p2x = baseX + (halfSize * Math.cos(perpAngle2)).toNumber();
+        var p2y = baseY - (halfSize * Math.sin(perpAngle2)).toNumber();
 
+        // Draw filled triangle via lines
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillPolygon(pts as Array< Array<Number> >);
+        dc.setPenWidth(2);
+        dc.drawLine(tipX, tipY, p1x, p1y);
+        dc.drawLine(tipX, tipY, p2x, p2y);
+        dc.drawLine(p1x, p1y, p2x, p2y);
     }
 }

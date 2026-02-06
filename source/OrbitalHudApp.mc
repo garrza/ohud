@@ -1,4 +1,5 @@
 import Toybox.Application;
+import Toybox.Lang;
 import Toybox.WatchUi;
 
 class OrbitalHudApp extends Application.AppBase {
@@ -7,15 +8,15 @@ class OrbitalHudApp extends Application.AppBase {
         AppBase.initialize();
     }
 
-    function onStart(state as Dictionary?) as Void {
+    function onStart(state as Lang.Dictionary?) as Void {
     }
 
-    function onStop(state as Dictionary?) as Void {
+    function onStop(state as Lang.Dictionary?) as Void {
     }
 
-    function getInitialView() as Array<Views or InputDelegates>? {
+    function getInitialView() as [WatchUi.Views] or [WatchUi.Views, WatchUi.InputDelegates] {
         DataManager.loadSettings();
-        return [new OrbitalHudView(), new OrbitalHudDelegate()] as Array<Views or InputDelegates>;
+        return [new OrbitalHudView(), new OrbitalHudDelegate()];
     }
 
     function onSettingsChanged() as Void {

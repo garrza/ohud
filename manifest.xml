@@ -1,5 +1,5 @@
 <iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="5">
-    <iq:application id="orbital-hud-v2" type="watchface"
+    <iq:application id="43e18568ffea4509aacd59933b64fd9a" type="watchface"
         entry="OrbitalHudApp" launcherIcon="@Drawables.LauncherIcon"
         name="@Strings.AppName" minSdkVersion="3.4.0">
         <iq:products>

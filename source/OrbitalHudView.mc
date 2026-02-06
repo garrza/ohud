@@ -146,7 +146,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
     // ── Date (top area) ──
     private function drawDate(dc as Graphics.Dc) as Void {
         var now = Time.now();
-        var info = Gregorian.info(now, Time.FORMAT_MEDIUM);
+        var shortInfo = Gregorian.info(now, Time.FORMAT_SHORT);
 
         // "MISSION DATE" label
         var labelY = (_h * 0.12).toNumber();
@@ -156,16 +156,16 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var dateStr;
         if (DataManager.dateFormat == 0) {
             // Stardate: YYYY.DDD
-            var doy = computeDayOfYear(info.year, info.month, info.day);
-            dateStr = info.year.toString() + "." + doy.format("%03d");
+            var doy = computeDayOfYear(shortInfo.year as Number, shortInfo.month as Number, shortInfo.day as Number);
+            dateStr = (shortInfo.year as Number).toString() + "." + doy.format("%03d");
         } else {
             // Standard: FEB 06 THU
             var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
             var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-            var mIdx = info.month as Number;
-            var dIdx = info.day_of_week as Number;
+            var mIdx = shortInfo.month as Number;
+            var dIdx = shortInfo.day_of_week as Number;
             // CIQ months are 1-12, day_of_week 1-7 (Sun=1)
-            dateStr = months[mIdx - 1] + " " + info.day.format("%02d") + " " + days[dIdx - 1];
+            dateStr = months[mIdx - 1] + " " + (shortInfo.day as Number).format("%02d") + " " + days[dIdx - 1];
         }
 
         var valueY = labelY + (_h * 0.06).toNumber();

@@ -288,9 +288,11 @@ module DataManager {
     function fetchSunTimes() as String {
         try {
             var cond = Weather.getCurrentConditions();
-            if (cond != null) {
-                var rise = cond.sunriseTime;
-                var set_ = cond.sunsetTime;
+            if (cond != null && cond.observationLocationPosition != null) {
+                var loc = cond.observationLocationPosition;
+                var now = Time.now();
+                var rise = Weather.getSunrise(loc, now);
+                var set_ = Weather.getSunset(loc, now);
                 if (rise != null && set_ != null) {
                     var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
                     var sInfo = Gregorian.info(set_, Time.FORMAT_SHORT);
