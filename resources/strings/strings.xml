@@ -1,0 +1,21 @@
+<strings>
+    <string id="AppName">Orbital HUD</string>
+    <string id="DateFormatLabel">Date Format</string>
+    <string id="DateFormatStardate">Stardate (YYYY.DDD)</string>
+    <string id="DateFormatStandard">Standard (FEB 06 THU)</string>
+    <string id="CycleIntervalLabel">Cycle Interval</string>
+    <string id="ThemeLabel">Color Theme</string>
+    <string id="ThemeDeepSpace">Deep Space</string>
+    <string id="ThemePhosphor">Phosphor Green</string>
+    <string id="ThemeWhite">White Minimal</string>
+    <string id="ShowReserveLabel">Show Body Battery</string>
+    <string id="ShowBurnLabel">Show Calories</string>
+    <string id="ShowElevLabel">Show Floors</string>
+    <string id="ShowRangeLabel">Show Distance</string>
+    <string id="ShowActiveLabel">Show Active Minutes</string>
+    <string id="ShowAltLabel">Show Altitude</string>
+    <string id="ShowSolLabel">Show Sunrise/Sunset</string>
+    <string id="ShowAtmoLabel">Show Weather</string>
+    <string id="ShowPressLabel">Show Pressure</string>
+    <string id="ShowTempLabel">Show Temperature</string>
+</strings>

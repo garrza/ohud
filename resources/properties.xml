@@ -1,0 +1,15 @@
+<properties>
+    <property id="DateFormat" type="number">0</property>
+    <property id="CycleInterval" type="number">10</property>
+    <property id="Theme" type="number">0</property>
+    <property id="ShowReserve" type="boolean">true</property>
+    <property id="ShowBurn" type="boolean">true</property>
+    <property id="ShowElev" type="boolean">true</property>
+    <property id="ShowRange" type="boolean">true</property>
+    <property id="ShowActive" type="boolean">true</property>
+    <property id="ShowAlt" type="boolean">true</property>
+    <property id="ShowSol" type="boolean">true</property>
+    <property id="ShowAtmo" type="boolean">true</property>
+    <property id="ShowPress" type="boolean">true</property>
+    <property id="ShowTemp" type="boolean">true</property>
+</properties>

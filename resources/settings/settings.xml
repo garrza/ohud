@@ -1,0 +1,53 @@
+<settings>
+    <setting propertyKey="@Properties.DateFormat" title="@Strings.DateFormatLabel">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.DateFormatStardate</listEntry>
+            <listEntry value="1">@Strings.DateFormatStandard</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.CycleInterval" title="@Strings.CycleIntervalLabel">
+        <settingConfig type="list">
+            <listEntry value="5">5s</listEntry>
+            <listEntry value="10">10s</listEntry>
+            <listEntry value="15">15s</listEntry>
+            <listEntry value="30">30s</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.Theme" title="@Strings.ThemeLabel">
+        <settingConfig type="list">
+            <listEntry value="0">@Strings.ThemeDeepSpace</listEntry>
+            <listEntry value="1">@Strings.ThemePhosphor</listEntry>
+            <listEntry value="2">@Strings.ThemeWhite</listEntry>
+        </settingConfig>
+    </setting>
+    <setting propertyKey="@Properties.ShowReserve" title="@Strings.ShowReserveLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowBurn" title="@Strings.ShowBurnLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowElev" title="@Strings.ShowElevLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowRange" title="@Strings.ShowRangeLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowActive" title="@Strings.ShowActiveLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowAlt" title="@Strings.ShowAltLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowSol" title="@Strings.ShowSolLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowAtmo" title="@Strings.ShowAtmoLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowPress" title="@Strings.ShowPressLabel">
+        <settingConfig type="boolean" />
+    </setting>
+    <setting propertyKey="@Properties.ShowTemp" title="@Strings.ShowTempLabel">
+        <settingConfig type="boolean" />
+    </setting>
+</settings>
