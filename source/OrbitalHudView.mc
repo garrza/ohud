@@ -99,7 +99,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.fillRectangle(_ssX, _ssY, _ssW, _ssH);
         var clockTime = System.getClockTime();
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY + 1, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
         dc.clearClip();
     }
 
@@ -283,11 +283,12 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_cx, timeY, _timeFontLg, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Seconds positioned at right edge of time text
+        // Seconds baseline-aligned with time, at right edge
         var timeDims = dc.getTextDimensions(timeStr, _timeFontLg);
         var timeW = timeDims[0];
         _ssX = _cx + timeW / 2 + 2;
-        _ssY = timeY + _fTimeLg - _fTimeSm - 2;
+        // Baseline-align: ascent ratio for Departure Mono is 11/14 of lineHeight
+        _ssY = timeY + (_fTimeLg - _fTimeSm) * 11 / 14;
         _ssW = 50;
         _ssH = _fTimeSm + 4;
 
