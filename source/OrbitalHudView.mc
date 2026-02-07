@@ -165,10 +165,11 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.fillRectangle(_ssX, _ssY, _ssW, _ssH);
         var clockTime = System.getClockTime();
+        var ssCenterX = _ssX + _ssW / 2;
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(ssCenterX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY + _fData, _dataFont, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(ssCenterX, _ssY + _fData - 4, _timeFontSm, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_CENTER);
         dc.clearClip();
     }
 
@@ -351,17 +352,21 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var timeW = timeDims[0];
         var midY = timeY + _fTimeLg / 2;
 
-        // Seconds: stacked "SEC" label + number, centered with time
+        // Seconds: "SEC" label (data font, dim) + number (Silkscreen), balanced with planet
         var gap = 14;
+        var secNumH = _fTimeSm;
+        var secLblH = _fData;
+        var secTotalH = secLblH + secNumH - 4;
         _ssX = _cx + timeW / 2 + gap;
-        _ssY = midY - _fData;
-        _ssW = 30;
-        _ssH = _fData * 2 + 4;
+        _ssY = midY - secTotalH / 2;
+        _ssW = 40;
+        _ssH = secTotalH + 4;
 
+        var ssCenterX = _ssX + _ssW / 2;
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(ssCenterX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_CENTER);
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY + _fData, _dataFont, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(ssCenterX, _ssY + secLblH - 4, _timeFontSm, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_CENTER);
 
         // Planet: vertically centered with time, spaced left
         var planetX = _cx - timeW / 2 - gap - 30;
