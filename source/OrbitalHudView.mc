@@ -95,7 +95,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
     //  DRAWING FUNCTIONS
     // ══════════════════════════════════════════
 
-    // ── Info Bar (date + battery% + BT indicator) ──
+    // ── Info Bar (centered date) ──
     private function drawInfoBar(dc as Graphics.Dc) as Void {
         var y = 20;
         var now = Time.now();
@@ -107,23 +107,11 @@ class OrbitalHudView extends WatchUi.WatchFace {
         } else {
             var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
             var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-            dateStr = months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + days[(info.day_of_week as Number) - 1];
+            dateStr = days[(info.day_of_week as Number) - 1] + " " + months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + (info.year as Number).toString();
         }
 
-        var margin = getHorizontalMargin(y + _fData / 2);
-        var lx = margin + 8;
-        var rx = _w - margin - 8;
-
-        // Left: date
         dc.setColor(DataManager.getColor(DataManager.CLR_TEXT_SEC), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Right: battery% + BT arrow
-        var battery = DataManager.cachedBattery;
-        var btConnected = System.getDeviceSettings().phoneConnected;
-        var btStr = btConnected ? "\u2191" : "\u2193";
-        var rightStr = battery.toString() + "% " + btStr;
-        dc.drawText(rx, y, _dataFont, rightStr, Graphics.TEXT_JUSTIFY_RIGHT);
+        dc.drawText(_cx, y, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
     }
 
     private function computeDayOfYear(year as Number, month as Number, day as Number) as Number {
@@ -171,22 +159,27 @@ class OrbitalHudView extends WatchUi.WatchFace {
     private function drawDataRow(dc as Graphics.Dc, y as Number, cells as Array) as Void {
         var margin = getHorizontalMargin(y + _fData / 2);
         var usableW = _w - 2 * margin - 16;
-        var cellW = usableW / 3;
+        var n = cells.size();
+        var cellW = usableW / n;
         var baseX = margin + 8;
 
-        for (var i = 0; i < cells.size(); i++) {
+        for (var i = 0; i < n; i++) {
             var cell = cells[i] as Array;
             var label = cell[0] as String;
             var value = cell[1] as String;
             var color = cell[2] as Number;
-            var x = baseX + cellW * i;
+
+            var labelW = dc.getTextWidthInPixels(label, _dataFont);
+            var valueW = dc.getTextWidthInPixels(value, _dataFont);
+            var totalW = labelW + valueW;
+            var cellCenterX = baseX + cellW * i + cellW / 2;
+            var x = cellCenterX - totalW / 2;
 
             // Draw label in dim color
             dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
             dc.drawText(x, y, _dataFont, label, Graphics.TEXT_JUSTIFY_LEFT);
 
-            // Draw value in cell color, offset right past label
-            var labelW = dc.getTextWidthInPixels(label, _dataFont);
+            // Draw value in cell color
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
             dc.drawText(x + labelW, y, _dataFont, value, Graphics.TEXT_JUSTIFY_LEFT);
         }
@@ -219,7 +212,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         if (count == 0) { return; }
 
         // Y positions for rows 2-5 (row 1 is biometrics, handled separately)
-        var rowYs = [68, 146, 170, 194];
+        var rowYs = [68, 152, 170, 190];
         var clrPri = DataManager.getColor(DataManager.CLR_PRIMARY);
 
         for (var row = 0; row < 4; row++) {
@@ -242,16 +235,16 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
 
-        // Top scan line wings at y=86
-        var y1 = 86;
+        // Top scan line wings at y=84
+        var y1 = 84;
         var m1 = getHorizontalMargin(y1);
         dc.drawLine(m1 + 8, y1, m1 + 28, y1);
         dc.drawLine(m1 + 32, y1, m1 + 36, y1);
         dc.drawLine(_w - m1 - 36, y1, _w - m1 - 32, y1);
         dc.drawLine(_w - m1 - 28, y1, _w - m1 - 8, y1);
 
-        // Bottom scan line wings at y=140
-        var y2 = 140;
+        // Bottom scan line wings at y=148
+        var y2 = 148;
         var m2 = getHorizontalMargin(y2);
         dc.drawLine(m2 + 8, y2, m2 + 28, y2);
         dc.drawLine(m2 + 32, y2, m2 + 36, y2);
@@ -269,7 +262,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
 
         var timeStr = hour.format("%02d") + ":" + clockTime.min.format("%02d");
-        var timeY = 92;
+        var timeY = 88;
 
         // Draw HH:MM centered
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
@@ -280,65 +273,21 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var timeW = timeDims[0];
         _ssX = _cx + timeW / 2 + 2;
         _ssY = timeY + _fTimeLg - _fTimeSm - 2;
-        _ssW = 40;
+        _ssW = 50;
         _ssH = _fTimeSm + 4;
 
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
     }
 
-    // ── Bottom Bar: Steps + Annunciator Dots ──
+    // ── Bottom Bar: Sunrise + Sunset ──
     private function drawBottomBar(dc as Graphics.Dc) as Void {
         var y = 220;
-        var margin = getHorizontalMargin(y + _fData / 2);
-        var lx = margin + 8;
-
-        // Label (dim) + step count (secondary), both DataFont
-        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, _dataFont, DataManager.ICON_STEPS, Graphics.TEXT_JUSTIFY_LEFT);
-        var labelW = dc.getTextWidthInPixels(DataManager.ICON_STEPS, _dataFont);
-        dc.setColor(DataManager.getColor(DataManager.CLR_SECONDARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx + labelW, y, _dataFont, DataManager.formatNumber(DataManager.cachedSteps), Graphics.TEXT_JUSTIFY_LEFT);
-
-        // Annunciator dots (right side)
-        var rx = _w - margin - 8;
-        drawAnnunciatorDots(dc, rx, y + _fData / 2);
-    }
-
-    // ── Annunciator Dots (5 colored dots) ──
-    private function drawAnnunciatorDots(dc as Graphics.Dc, rx as Number, cy as Number) as Void {
-        var settings = System.getDeviceSettings();
-        var spacing = 10;
-        var startX = rx - 4 * spacing;
-
-        // BT
-        var btActive = settings.phoneConnected;
-        dc.setColor(btActive ? DataManager.getColor(DataManager.CLR_PRIMARY) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        if (btActive) { dc.fillCircle(startX, cy, 3); } else { dc.drawCircle(startX, cy, 2); }
-
-        // NTF
-        var ntfActive = settings.notificationCount > 0;
-        dc.setColor(ntfActive ? Graphics.COLOR_WHITE : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        if (ntfActive) { dc.fillCircle(startX + spacing, cy, 3); } else { dc.drawCircle(startX + spacing, cy, 2); }
-
-        // DND
-        var dndActive = settings.doNotDisturb;
-        dc.setColor(dndActive ? DataManager.getColor(DataManager.CLR_SECONDARY) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        if (dndActive) { dc.fillCircle(startX + spacing * 2, cy, 3); } else { dc.drawCircle(startX + spacing * 2, cy, 2); }
-
-        // ALM
-        var almActive = settings.alarmCount > 0;
-        dc.setColor(almActive ? DataManager.getColor(DataManager.CLR_WARNING) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        if (almActive) { dc.fillCircle(startX + spacing * 3, cy, 3); } else { dc.drawCircle(startX + spacing * 3, cy, 2); }
-
-        // MOV
-        var movActive = false;
-        try {
-            var amInfo = ActivityMonitor.getInfo();
-            if (amInfo.moveBarLevel != null) { movActive = (amInfo.moveBarLevel as Number) > 0; }
-        } catch (e) {}
-        dc.setColor(movActive ? DataManager.getColor(DataManager.CLR_CRITICAL) : DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        if (movActive) { dc.fillCircle(startX + spacing * 4, cy, 3); } else { dc.drawCircle(startX + spacing * 4, cy, 2); }
+        var clrSec = DataManager.getColor(DataManager.CLR_SECONDARY);
+        drawDataRow(dc, y, [
+            ["SR ", DataManager.fetchSunrise(), clrSec],
+            ["SS ", DataManager.fetchSunset(), clrSec]
+        ]);
     }
 
     // ── Corner Brackets (HUD frame) ──

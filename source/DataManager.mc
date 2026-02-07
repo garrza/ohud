@@ -277,11 +277,43 @@ module DataManager {
         return "--:--";
     }
 
+    function fetchSunrise() as String {
+        try {
+            var cond = Weather.getCurrentConditions();
+            if (cond != null && cond.observationLocationPosition != null) {
+                var loc = cond.observationLocationPosition;
+                var now = Time.now();
+                var rise = Weather.getSunrise(loc, now);
+                if (rise != null) {
+                    var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
+                    return (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                }
+            }
+        } catch (e) {}
+        return "--:--";
+    }
+
+    function fetchSunset() as String {
+        try {
+            var cond = Weather.getCurrentConditions();
+            if (cond != null && cond.observationLocationPosition != null) {
+                var loc = cond.observationLocationPosition;
+                var now = Time.now();
+                var set = Weather.getSunset(loc, now);
+                if (set != null) {
+                    var sInfo = Gregorian.info(set, Time.FORMAT_SHORT);
+                    return (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                }
+            }
+        } catch (e) {}
+        return "--:--";
+    }
+
     function fetchWeather() as String {
         try {
             var cond = Weather.getCurrentConditions();
             if (cond != null && cond.temperature != null) {
-                return (cond.temperature as Number).toString() + "C";
+                return cond.temperature.toNumber().toString() + "C";
             }
         } catch (e) {}
         return "--C";
