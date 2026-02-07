@@ -166,7 +166,9 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.fillRectangle(_ssX, _ssY, _ssW, _ssH);
         var clockTime = System.getClockTime();
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(_ssX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_ssX, _ssY + _fData, _dataFont, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
         dc.clearClip();
     }
 
@@ -349,14 +351,16 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var timeW = timeDims[0];
         var midY = timeY + _fTimeLg / 2;
 
-        // Seconds: vertically centered with time, spaced right
+        // Seconds: stacked "SEC" label + number, centered with time
         _ssX = _cx + timeW / 2 + 8;
-        _ssY = midY - _fTimeSm / 2;
-        _ssW = 50;
-        _ssH = _fTimeSm + 4;
+        _ssY = midY - _fData;
+        _ssW = 30;
+        _ssH = _fData * 2 + 4;
 
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(_ssX, _ssY, _dataFont, "SEC", Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(_ssX, _ssY + _fData, _dataFont, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
 
         // Planet: vertically centered with time, spaced left
         var planetX = _cx - timeW / 2 - 38;
