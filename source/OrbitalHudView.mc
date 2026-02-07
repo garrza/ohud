@@ -115,15 +115,10 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var y = 20;
         var now = Time.now();
         var info = Gregorian.info(now, Time.FORMAT_SHORT);
-        var dateStr;
-        if (DataManager.dateFormat == 0) {
-            var doy = computeDayOfYear(info.year as Number, info.month as Number, info.day as Number);
-            dateStr = (info.year as Number).toString() + "." + doy.format("%03d");
-        } else {
-            var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
-            var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
-            dateStr = days[(info.day_of_week as Number) - 1] + " " + months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + (info.year as Number).toString();
-        }
+        var months = ["JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC"];
+        var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
+        var dateStr = days[(info.day_of_week as Number) - 1] + " / " +
+            months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d");
 
         dc.setColor(DataManager.getColor(DataManager.CLR_TEXT_SEC), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_cx, y, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
