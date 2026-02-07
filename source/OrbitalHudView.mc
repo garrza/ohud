@@ -352,7 +352,8 @@ class OrbitalHudView extends WatchUi.WatchFace {
         var midY = timeY + _fTimeLg / 2;
 
         // Seconds: stacked "SEC" label + number, centered with time
-        _ssX = _cx + timeW / 2 + 8;
+        var gap = 14;
+        _ssX = _cx + timeW / 2 + gap;
         _ssY = midY - _fData;
         _ssW = 30;
         _ssH = _fData * 2 + 4;
@@ -363,7 +364,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.drawText(_ssX, _ssY + _fData, _dataFont, clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
 
         // Planet: vertically centered with time, spaced left
-        var planetX = _cx - timeW / 2 - 38;
+        var planetX = _cx - timeW / 2 - gap - 30;
         var planetY = midY - 15;
         var frame = clockTime.sec % 60;
         dc.drawBitmap(planetX, planetY, _planet[frame]);
