@@ -1,0 +1,24 @@
+info face="DepartureMono" size=22 bold=0 italic=0 charset="" unicode=1 stretchH=100 smooth=0 aa=0 padding=0,0,0,0 spacing=1,1 outline=0
+common lineHeight=28 base=22 scaleW=512 scaleH=32 pages=1 packed=0 alphaChnl=0 redChnl=4 greenChnl=4 blueChnl=4
+page id=0 file="departure_22_0.png"
+chars count=20
+char id=9829    x=2        y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9889    x=18       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9678    x=34       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9632    x=50       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9832    x=66       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9650    x=82       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=8594    x=98       y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9733    x=114      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9968    x=130      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9728    x=146      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9729    x=162      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9670    x=178      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=8764    x=194      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=8776    x=210      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9883    x=226      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=10003   x=242      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=8967    x=258      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9789    x=274      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9851    x=290      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15
+char id=9679    x=306      y=2        width=14        height=28        xoffset=0          yoffset=0          xadvance=14        page=0  chnl=15

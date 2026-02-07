@@ -21,7 +21,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
     private var _timeFontSm as Graphics.FontType = Graphics.FONT_SMALL;
     private var _dataFont as Graphics.FontType = Graphics.FONT_XTINY;
     private var _fTimeLg as Number = 42;
-    private var _fTimeSm as Number = 20;
+    private var _fTimeSm as Number = 14;
     private var _fData as Number = 14;
 
     // ── Seconds clip region ──
@@ -59,24 +59,22 @@ class OrbitalHudView extends WatchUi.WatchFace {
         DataManager.fetchHeartRate();
         DataManager.fetchStress();
         DataManager.fetchSpO2();
-        DataManager.tickCycle(_isHighPower);
 
         if (_isHighPower) {
             DataManager.ecgOffset = (DataManager.ecgOffset + 1) % 20;
         }
 
         // Draw back to front
-        drawBatteryArc(dc);
-        drawStepsArc(dc);
+        drawSecondsRing(dc);
         drawCornerBrackets(dc);
-        drawDate(dc);
-        drawSeparator(dc, 40);
+        drawInfoBar(dc);
+        drawSeparator(dc, 34);
         drawRow1(dc);
         drawEcgWave(dc, 35, 61, _w - 70, 5);
-        drawTier2Grid(dc);
+        drawDataRows(dc);
         drawScanLines(dc);
         drawTime(dc);
-        drawSeparator(dc, 199);
+        drawSeparator(dc, 216);
         drawBottomBar(dc);
     }
 
@@ -91,17 +89,15 @@ class OrbitalHudView extends WatchUi.WatchFace {
     }
 
     function onEnterSleep() as Void { _isHighPower = false; }
-    function onExitSleep() as Void {
-        _isHighPower = true;
-        DataManager.tier2Counter = 0;
-    }
+    function onExitSleep() as Void { _isHighPower = true; }
 
     // ══════════════════════════════════════════
     //  DRAWING FUNCTIONS
     // ══════════════════════════════════════════
 
-    // ── Date (top center, Orbitron 14) ──
-    private function drawDate(dc as Graphics.Dc) as Void {
+    // ── Info Bar (date + battery% + BT indicator) ──
+    private function drawInfoBar(dc as Graphics.Dc) as Void {
+        var y = 20;
         var now = Time.now();
         var info = Gregorian.info(now, Time.FORMAT_SHORT);
         var dateStr;
@@ -113,8 +109,21 @@ class OrbitalHudView extends WatchUi.WatchFace {
             var days = ["SUN","MON","TUE","WED","THU","FRI","SAT"];
             dateStr = months[(info.month as Number) - 1] + " " + (info.day as Number).format("%02d") + " " + days[(info.day_of_week as Number) - 1];
         }
+
+        var margin = getHorizontalMargin(y + _fData / 2);
+        var lx = margin + 8;
+        var rx = _w - margin - 8;
+
+        // Left: date
         dc.setColor(DataManager.getColor(DataManager.CLR_TEXT_SEC), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(_cx, 28, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_CENTER);
+        dc.drawText(lx, y, _dataFont, dateStr, Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Right: battery% + BT arrow
+        var battery = DataManager.cachedBattery;
+        var btConnected = System.getDeviceSettings().phoneConnected;
+        var btStr = btConnected ? "\u2191" : "\u2193";
+        var rightStr = battery.toString() + "% " + btStr;
+        dc.drawText(rx, y, _dataFont, rightStr, Graphics.TEXT_JUSTIFY_RIGHT);
     }
 
     private function computeDayOfYear(year as Number, month as Number, day as Number) as Number {
@@ -132,7 +141,6 @@ class OrbitalHudView extends WatchUi.WatchFace {
     private function drawSeparator(dc as Graphics.Dc, y as Number) as Void {
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        // Calculate visible width at this Y for round display
         var margin = getHorizontalMargin(y);
         var x1 = margin + 8;
         var x2 = _w - margin - 8;
@@ -149,33 +157,39 @@ class OrbitalHudView extends WatchUi.WatchFace {
 
     // ── Row 1: Always-on biometrics (HR, Stress, SpO2) ──
     private function drawRow1(dc as Graphics.Dc) as Void {
-        var y = 43;
+        var y = 38;
+        drawDataRow(dc, y, [
+            [DataManager.ICON_HR, DataManager.cachedHR > 0 ? DataManager.cachedHR.toString() : "--", DataManager.getHrZoneColor(DataManager.cachedHR)],
+            [DataManager.ICON_STRESS, DataManager.cachedStress > 0 ? DataManager.cachedStress.toString() : "--",
+                DataManager.cachedStress > 50 ? DataManager.getColor(DataManager.CLR_WARNING) : DataManager.getColor(DataManager.CLR_PRIMARY)],
+            [DataManager.ICON_SPO2, DataManager.cachedSpO2 > 0 ? DataManager.cachedSpO2.toString() + "%" : "--%",
+                (DataManager.cachedSpO2 > 0 && DataManager.cachedSpO2 < 90) ? DataManager.getColor(DataManager.CLR_CRITICAL) : DataManager.getColor(DataManager.CLR_PRIMARY)]
+        ]);
+    }
+
+    // ── Generic data row: draws up to 3 cells with label (dim) + value (color), both DataFont ──
+    private function drawDataRow(dc as Graphics.Dc, y as Number, cells as Array) as Void {
         var margin = getHorizontalMargin(y + _fData / 2);
         var usableW = _w - 2 * margin - 16;
         var cellW = usableW / 3;
         var baseX = margin + 8;
 
-        var clrPri = DataManager.getColor(DataManager.CLR_PRIMARY);
+        for (var i = 0; i < cells.size(); i++) {
+            var cell = cells[i] as Array;
+            var label = cell[0] as String;
+            var value = cell[1] as String;
+            var color = cell[2] as Number;
+            var x = baseX + cellW * i;
 
-        // HR: ♥ + value
-        var hr = DataManager.cachedHR;
-        var hrStr = hr > 0 ? hr.toString() : "--";
-        dc.setColor(DataManager.getHrZoneColor(hr), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(baseX, y, _dataFont, DataManager.ICON_HR + hrStr, Graphics.TEXT_JUSTIFY_LEFT);
+            // Draw label in dim color
+            dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, y, _dataFont, label, Graphics.TEXT_JUSTIFY_LEFT);
 
-        // Stress: ⚡ + value
-        var stress = DataManager.cachedStress;
-        var strStr = stress > 0 ? stress.toString() : "--";
-        var strColor = stress > 50 ? DataManager.getColor(DataManager.CLR_WARNING) : clrPri;
-        dc.setColor(strColor, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(baseX + cellW, y, _dataFont, DataManager.ICON_STRESS + strStr, Graphics.TEXT_JUSTIFY_LEFT);
-
-        // SpO2: ◎ + value
-        var spo2 = DataManager.cachedSpO2;
-        var o2Str = spo2 > 0 ? spo2.toString() + "%" : "--%";
-        var o2Color = (spo2 > 0 && spo2 < 90) ? DataManager.getColor(DataManager.CLR_CRITICAL) : clrPri;
-        dc.setColor(o2Color, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(baseX + cellW * 2, y, _dataFont, DataManager.ICON_SPO2 + o2Str, Graphics.TEXT_JUSTIFY_LEFT);
+            // Draw value in cell color, offset right past label
+            var labelW = dc.getTextWidthInPixels(label, _dataFont);
+            dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x + labelW, y, _dataFont, value, Graphics.TEXT_JUSTIFY_LEFT);
+        }
     }
 
     // ── ECG Waveform ──
@@ -198,46 +212,28 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
     }
 
-    // ── Tier2 Grid (rows 2-4 above and below time) ──
-    private function drawTier2Grid(dc as Graphics.Dc) as Void {
-        var pageItems = DataManager.getTier2PageItems();
-        var count = pageItems.size();
+    // ── Tier2 Data Rows (5 rows: row2 above time, rows 3-5 below time) ──
+    private function drawDataRows(dc as Graphics.Dc) as Void {
+        var slotItems = DataManager.getTier2SlotItems();
+        var count = slotItems.size();
         if (count == 0) { return; }
 
-        // Row Y positions: above time and below time
-        var rowYs = [68, 160, 183];
-        var rowIdx = 0;
-
-        for (var i = 0; i < count && rowIdx < 3; i += 3) {
-            var y = rowYs[rowIdx] as Number;
-            // How many items in this row
-            var rowCount = count - i;
-            if (rowCount > 3) { rowCount = 3; }
-            drawTier2Row(dc, y, pageItems, i, rowCount);
-            rowIdx++;
-        }
-
-        // Draw page indicator dots if multiple pages
-        if (DataManager.getTier2PageCount() > 1) {
-            drawPageDots(dc, 210);
-        }
-    }
-
-    private function drawTier2Row(dc as Graphics.Dc, y as Number, items as Array<Number>,
-            startIdx as Number, count as Number) as Void {
-        var margin = getHorizontalMargin(y + _fData / 2);
-        var usableW = _w - 2 * margin - 16;
-        var cellW = usableW / 3;
-        var baseX = margin + 8;
-
+        // Y positions for rows 2-5 (row 1 is biometrics, handled separately)
+        var rowYs = [68, 146, 170, 194];
         var clrPri = DataManager.getColor(DataManager.CLR_PRIMARY);
-        dc.setColor(clrPri, Graphics.COLOR_TRANSPARENT);
 
-        for (var i = 0; i < count; i++) {
-            var itemIdx = items[startIdx + i];
-            var icon = DataManager.getTier2Icon(itemIdx);
-            var value = DataManager.getTier2Value(itemIdx);
-            dc.drawText(baseX + cellW * i, y, _dataFont, icon + value, Graphics.TEXT_JUSTIFY_LEFT);
+        for (var row = 0; row < 4; row++) {
+            var startIdx = row * 3;
+            if (startIdx >= count) { break; }
+            var rowCount = count - startIdx;
+            if (rowCount > 3) { rowCount = 3; }
+
+            var cells = [] as Array;
+            for (var i = 0; i < rowCount; i++) {
+                var itemIdx = slotItems[startIdx + i];
+                cells.add([DataManager.getTier2Icon(itemIdx), DataManager.getTier2Value(itemIdx), clrPri]);
+            }
+            drawDataRow(dc, rowYs[row] as Number, cells);
         }
     }
 
@@ -246,23 +242,19 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
 
-        // Top scan line wings at y=88
-        var y1 = 88;
+        // Top scan line wings at y=86
+        var y1 = 86;
         var m1 = getHorizontalMargin(y1);
-        // Left wing
         dc.drawLine(m1 + 8, y1, m1 + 28, y1);
         dc.drawLine(m1 + 32, y1, m1 + 36, y1);
-        // Right wing
         dc.drawLine(_w - m1 - 36, y1, _w - m1 - 32, y1);
         dc.drawLine(_w - m1 - 28, y1, _w - m1 - 8, y1);
 
-        // Bottom scan line wings at y=155
-        var y2 = 155;
+        // Bottom scan line wings at y=140
+        var y2 = 140;
         var m2 = getHorizontalMargin(y2);
-        // Left wing
         dc.drawLine(m2 + 8, y2, m2 + 28, y2);
         dc.drawLine(m2 + 32, y2, m2 + 36, y2);
-        // Right wing
         dc.drawLine(_w - m2 - 36, y2, _w - m2 - 32, y2);
         dc.drawLine(_w - m2 - 28, y2, _w - m2 - 8, y2);
     }
@@ -277,7 +269,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
 
         var timeStr = hour.format("%02d") + ":" + clockTime.min.format("%02d");
-        var timeY = 97;
+        var timeY = 92;
 
         // Draw HH:MM centered
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
@@ -297,13 +289,16 @@ class OrbitalHudView extends WatchUi.WatchFace {
 
     // ── Bottom Bar: Steps + Annunciator Dots ──
     private function drawBottomBar(dc as Graphics.Dc) as Void {
-        var y = 204;
+        var y = 220;
         var margin = getHorizontalMargin(y + _fData / 2);
         var lx = margin + 8;
 
-        // ● icon + step count (single drawText)
+        // Label (dim) + step count (secondary), both DataFont
+        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+        dc.drawText(lx, y, _dataFont, DataManager.ICON_STEPS, Graphics.TEXT_JUSTIFY_LEFT);
+        var labelW = dc.getTextWidthInPixels(DataManager.ICON_STEPS, _dataFont);
         dc.setColor(DataManager.getColor(DataManager.CLR_SECONDARY), Graphics.COLOR_TRANSPARENT);
-        dc.drawText(lx, y, _dataFont, DataManager.ICON_STEPS + DataManager.formatNumber(DataManager.cachedSteps), Graphics.TEXT_JUSTIFY_LEFT);
+        dc.drawText(lx + labelW, y, _dataFont, DataManager.formatNumber(DataManager.cachedSteps), Graphics.TEXT_JUSTIFY_LEFT);
 
         // Annunciator dots (right side)
         var rx = _w - margin - 8;
@@ -346,76 +341,48 @@ class OrbitalHudView extends WatchUi.WatchFace {
         if (movActive) { dc.fillCircle(startX + spacing * 4, cy, 3); } else { dc.drawCircle(startX + spacing * 4, cy, 2); }
     }
 
-    // ── Page Indicator Dots ──
-    private function drawPageDots(dc as Graphics.Dc, y as Number) as Void {
-        var pages = DataManager.getTier2PageCount();
-        if (pages <= 1) { return; }
-        var spacing = 8;
-        var totalW = (pages - 1) * spacing;
-        var startX = _cx - totalW / 2;
-        for (var i = 0; i < pages; i++) {
-            var dx = startX + i * spacing;
-            if (i == DataManager.tier2Current) {
-                dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, y, 2);
-            } else {
-                dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-                dc.fillCircle(dx, y, 1);
-            }
-        }
-    }
-
     // ── Corner Brackets (HUD frame) ──
     private function drawCornerBrackets(dc as Graphics.Dc) as Void {
         var inset = 24;
         var len = 14;
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        // Top-left
         dc.drawLine(inset, inset, inset + len, inset);
         dc.drawLine(inset, inset, inset, inset + len);
-        // Top-right
         dc.drawLine(_w - inset, inset, _w - inset - len, inset);
         dc.drawLine(_w - inset, inset, _w - inset, inset + len);
-        // Bottom-left
         dc.drawLine(inset, _h - inset, inset + len, _h - inset);
         dc.drawLine(inset, _h - inset, inset, _h - inset - len);
-        // Bottom-right
         dc.drawLine(_w - inset, _h - inset, _w - inset - len, _h - inset);
         dc.drawLine(_w - inset, _h - inset, _w - inset, _h - inset - len);
     }
 
-    // ── Battery Arc (outer ring) ──
-    private function drawBatteryArc(dc as Graphics.Dc) as Void {
-        var battery = DataManager.cachedBattery;
+    // ── Seconds Ring (outer edge, fills CW from 12 o'clock) ──
+    private function drawSecondsRing(dc as Graphics.Dc) as Void {
+        var clockTime = System.getClockTime();
+        var sec = clockTime.sec;
         var radius = (_w / 2) - 3;
 
-        var arcColor;
-        if (battery > 30) { arcColor = DataManager.getColor(DataManager.CLR_PRIMARY); }
-        else if (battery > 15) { arcColor = DataManager.getColor(DataManager.CLR_WARNING); }
-        else { arcColor = DataManager.getColor(DataManager.CLR_CRITICAL); }
-
-        var fillDeg = (battery.toFloat() / 100.0 * 360.0).toNumber();
-
-        // Unfilled ring
+        // Unfilled ring (dim, full circle)
         dc.setPenWidth(1);
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 91);
+        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 0, 1);
 
-        // Filled arc
+        // Filled arc based on current second
+        var fillDeg = (sec.toFloat() / 60.0 * 360.0).toNumber();
         if (fillDeg > 0) {
-            dc.setPenWidth(4);
-            dc.setColor(arcColor, Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(3);
+            dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
             var endAngle = 90 - fillDeg;
             if (endAngle < 0) { endAngle += 360; }
             dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, endAngle);
-            DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), arcColor, 6);
+            DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), DataManager.getColor(DataManager.CLR_PRIMARY), 6);
         }
 
-        // Tick marks at 25%, 50%, 75%
+        // Tick marks at 15s intervals (12/3/6/9 positions = 90/0/270/180 degrees)
         dc.setPenWidth(1);
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        var tickAngles = [0.0, 270.0, 180.0];
+        var tickAngles = [90.0, 0.0, 270.0, 180.0];
         for (var i = 0; i < tickAngles.size(); i++) {
             var rad = Math.toRadians(tickAngles[i]);
             var x1 = _cx + ((radius - 4) * Math.cos(rad)).toNumber();
@@ -426,47 +393,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
     }
 
-    // ── Steps Arc (inner ring) ──
-    private function drawStepsArc(dc as Graphics.Dc) as Void {
-        var steps = DataManager.cachedSteps;
-        var goal = DataManager.cachedStepGoal;
-        var radius = (_w / 2) - 10;
-        var pct = steps.toFloat() / goal.toFloat();
-        if (pct > 2.0) { pct = 2.0; }
-
-        // Unfilled ring
-        dc.setPenWidth(1);
-        dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 91);
-
-        var arcColor = DataManager.getColor(DataManager.CLR_SECONDARY);
-        if (pct <= 1.0) {
-            var fillDeg = (pct * 360.0).toNumber();
-            if (fillDeg > 0) {
-                dc.setPenWidth(4);
-                dc.setColor(arcColor, Graphics.COLOR_TRANSPARENT);
-                var endAngle = 90 - fillDeg;
-                if (endAngle < 0) { endAngle += 360; }
-                dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, endAngle);
-                DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), arcColor, 5);
-            }
-        } else {
-            dc.setPenWidth(4);
-            dc.setColor(arcColor, Graphics.COLOR_TRANSPARENT);
-            dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 90, 91);
-            var overflowDeg = ((pct - 1.0) * 360.0).toNumber();
-            if (overflowDeg > 0) {
-                dc.setPenWidth(2);
-                dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
-                var endAngle = 90 - overflowDeg;
-                if (endAngle < 0) { endAngle += 360; }
-                dc.drawArc(_cx, _cy, radius - 5, Graphics.ARC_CLOCKWISE, 90, endAngle);
-            }
-        }
-    }
-
     // ── Helper: horizontal margin for round display at given Y ──
-    // Returns the X distance from edge to the chord at height Y
     private function getHorizontalMargin(y as Number) as Number {
         var r = _w / 2;
         var dy = (y - _cy).abs();

@@ -13,7 +13,6 @@ module DataManager {
 
     // ── Settings ──
     var dateFormat as Number = 0;          // 0=stardate, 1=standard
-    var cycleInterval as Number = 10;      // seconds
     var themeId as Number = 0;             // 0-5
 
     // ── Theme Color Arrays ──
@@ -48,28 +47,24 @@ module DataManager {
         "ShowResp", "ShowVO2", "ShowReady", "ShowHRV", "ShowSleep", "ShowRecov"
     ];
 
-    // Icon glyphs from Departure Mono for each tier2 item
+    // Text labels for each tier2 item (trailing space as separator)
     const TIER2_ICONS = [
-        "\u25A0", "\u2668", "\u25B2", "\u2192", "\u2605",
-        "\u26F0", "\u2600", "\u2601", "\u25C6", "\u223C",
-        "\u2248", "\u269B", "\u2713", "\u2307", "\u263D", "\u267B"
+        "BB ", "CA ", "FL ", "DI ", "AM ",
+        "AL ", "SR ", "WX ", "PR ", "TP ",
+        "RR ", "VO ", "RD ", "HV ", "SL ", "RC "
     ];
 
-    // Row 1 icons (always-on biometrics)
-    const ICON_HR = "\u2665";
-    const ICON_STRESS = "\u26A1";
-    const ICON_SPO2 = "\u25CE";
-    const ICON_STEPS = "\u25CF";
+    // Row 1 labels (always-on biometrics)
+    const ICON_HR = "HR ";
+    const ICON_STRESS = "ST ";
+    const ICON_SPO2 = "O2 ";
+    const ICON_STEPS = "STP ";
 
     var tier2EnabledIndices as Array<Number> = [];
-    var tier2Current as Number = 0;    // current PAGE index (not item index)
-    var tier2Counter as Number = 0;
-    const TIER2_PAGE_SIZE = 9;
 
     // ── Cached Data ──
     var cachedBattery as Number = 0;
     var cachedSteps as Number = 0;
-    var cachedStepGoal as Number = 10000;
     var cachedHR as Number = 0;
     var cachedStress as Number = 0;
     var cachedSpO2 as Number = 0;
@@ -86,8 +81,6 @@ module DataManager {
         var app = Application.getApp();
         var df = app.getProperty("DateFormat");
         dateFormat = (df != null) ? (df as Number) : 0;
-        var ci = app.getProperty("CycleInterval");
-        cycleInterval = (ci != null) ? (ci as Number) : 10;
         var th = app.getProperty("Theme");
         themeId = (th != null) ? (th as Number) : 0;
         rebuildTier2List();
@@ -105,9 +98,6 @@ module DataManager {
         if (tier2EnabledIndices.size() == 0) {
             tier2EnabledIndices.add(0);
         }
-        if (tier2Current >= getTier2PageCount()) {
-            tier2Current = 0;
-        }
     }
 
     function getColor(role as Number) as Number {
@@ -116,45 +106,15 @@ module DataManager {
         return (THEME_COLORS[t] as Array<Number>)[role];
     }
 
-    // ── Tier 2 Paging ──
-
-    function getTier2PageCount() as Number {
-        var total = tier2EnabledIndices.size();
-        if (total == 0) { return 1; }
-        return (total + TIER2_PAGE_SIZE - 1) / TIER2_PAGE_SIZE;
-    }
-
-    // Returns the list of enabled tier2 indices for the current page
-    function getTier2PageItems() as Array<Number> {
+    // Returns up to 12 enabled tier2 indices (no pagination)
+    function getTier2SlotItems() as Array<Number> {
         var items = [] as Array<Number>;
         var total = tier2EnabledIndices.size();
-        var startIdx = tier2Current * TIER2_PAGE_SIZE;
-        var endIdx = startIdx + TIER2_PAGE_SIZE;
-        if (endIdx > total) { endIdx = total; }
-        for (var i = startIdx; i < endIdx; i++) {
+        var limit = total > 12 ? 12 : total;
+        for (var i = 0; i < limit; i++) {
             items.add(tier2EnabledIndices[i]);
         }
         return items;
-    }
-
-    function advanceTier2() as Void {
-        var pages = getTier2PageCount();
-        if (pages > 1) {
-            tier2Current = (tier2Current + 1) % pages;
-        }
-        tier2Counter = 0;
-    }
-
-    function tickCycle(isHighPower as Boolean) as Void {
-        if (getTier2PageCount() <= 1) { return; }
-        if (isHighPower) {
-            tier2Counter++;
-            if (tier2Counter >= cycleInterval) {
-                advanceTier2();
-            }
-        } else {
-            advanceTier2();
-        }
     }
 
     // Get the value string for a tier2 item by its global index
@@ -199,7 +159,6 @@ module DataManager {
     function fetchSteps() as Void {
         var info = ActivityMonitor.getInfo();
         cachedSteps = info.steps != null ? info.steps as Number : 0;
-        cachedStepGoal = info.stepGoal != null ? info.stepGoal as Number : 10000;
     }
 
     function fetchHeartRate() as Number {
