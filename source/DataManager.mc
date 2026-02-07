@@ -43,15 +43,15 @@ module DataManager {
     // ── Tier 2 Definitions ──
     const TIER2_KEYS = [
         "ShowReserve", "ShowBurn", "ShowElev", "ShowRange", "ShowActive",
-        "ShowAlt", "ShowSol", "ShowAtmo", "ShowPress", "ShowTemp",
+        "ShowAlt", "ShowSteps", "ShowAtmo", "ShowPress", "ShowBattery",
         "ShowResp", "ShowVO2", "ShowReady", "ShowHRV", "ShowSleep", "ShowRecov"
     ];
 
     // Text labels for each tier2 item (trailing space as separator)
     const TIER2_ICONS = [
-        "BB ", "CA ", "FL ", "DI ", "AM ",
-        "AL ", "SR ", "WX ", "PR ", "TP ",
-        "RR ", "VO ", "RD ", "HV ", "SL ", "RC "
+        "BODY ", "CAL ", "FLR ", "DIST ", "ACTV ",
+        "ALT ", "STEP ", "WX ", "PRES ", "BAT ",
+        "RESP ", "VO2 ", "RDNS ", "HRV ", "SLP ", "RECV "
     ];
 
     // Row 1 labels (always-on biometrics)
@@ -126,10 +126,10 @@ module DataManager {
             case 3: return fetchDistance();
             case 4: return fetchActiveMinutes();
             case 5: return fetchAltitude();
-            case 6: return fetchSunTimes();
+            case 6: return formatNumber(cachedSteps);
             case 7: return fetchWeather();
             case 8: return fetchPressure();
-            case 9: return fetchTemperature();
+            case 9: return cachedBattery.toString() + "%";
             case 10: return fetchRespRate();
             case 11: return fetchVO2Max();
             case 12: return fetchReadiness();
