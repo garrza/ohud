@@ -320,7 +320,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         // Spaceship at current second position
         var fillDeg = (sec.toFloat() / 60.0 * 360.0).toNumber();
         if (fillDeg > 0) {
-            DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), Graphics.COLOR_WHITE, 12);
+            DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), DataManager.getColor(DataManager.CLR_PRIMARY), 12);
         }
 
         // Tick marks at 15s intervals (12/3/6/9 positions = 90/0/270/180 degrees)
