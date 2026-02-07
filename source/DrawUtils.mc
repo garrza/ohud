@@ -18,30 +18,70 @@ module DrawUtils {
         }
     }
 
-    // Draw a triangular arrowhead at angle on a ring
+    // Draw a spaceship at angle on a ring, facing clockwise (direction of travel)
+    // Shape: elongated nose, swept delta wings, narrow tail fins, engine notch
     function drawArrowhead(dc as Graphics.Dc, cx as Number, cy as Number,
             radius as Number, angleDeg as Float, color as Number, size as Number) as Void {
-        var angleRad = Math.toRadians(angleDeg);
-        var tipX = cx + (radius * Math.cos(angleRad)).toNumber();
-        var tipY = cy - (radius * Math.sin(angleRad)).toNumber();
+        var posRad = Math.toRadians(angleDeg);
 
-        var backAngle = Math.toRadians(angleDeg + 180);
-        var perpAngle1 = Math.toRadians(angleDeg + 90);
-        var perpAngle2 = Math.toRadians(angleDeg - 90);
+        // Ship center shifted slightly inward so outer wing stays in frame
+        var r = radius - 4;
+        var cX = cx + (r * Math.cos(posRad)).toNumber();
+        var cY = cy - (r * Math.sin(posRad)).toNumber();
 
-        var baseX = tipX + (size * Math.cos(backAngle)).toNumber();
-        var baseY = tipY - (size * Math.sin(backAngle)).toNumber();
+        // Heading: tangent clockwise (angleDeg - 90)
+        var fwdRad = Math.toRadians(angleDeg - 90.0);
+        var bkRad  = Math.toRadians(angleDeg + 90.0);
+        var outRad = Math.toRadians(angleDeg);
+        var inRad  = Math.toRadians(angleDeg + 180.0);
 
-        var halfSize = size / 2;
-        var p1x = baseX + (halfSize * Math.cos(perpAngle1)).toNumber();
-        var p1y = baseY - (halfSize * Math.sin(perpAngle1)).toNumber();
-        var p2x = baseX + (halfSize * Math.cos(perpAngle2)).toNumber();
-        var p2y = baseY - (halfSize * Math.sin(perpAngle2)).toNumber();
+        var s = size.toFloat();
+
+        // Nose tip (sharp point)
+        var nX = cX + (0.6*s*Math.cos(fwdRad)).toNumber();
+        var nY = cY - (0.6*s*Math.sin(fwdRad)).toNumber();
+
+        // Outer shoulder (fuselage widens slightly before wings)
+        var osX = cX + (0.15*s*Math.cos(fwdRad) + 0.12*s*Math.cos(outRad)).toNumber();
+        var osY = cY - (0.15*s*Math.sin(fwdRad) + 0.12*s*Math.sin(outRad)).toNumber();
+
+        // Outer wing tip (swept back, wide)
+        var owX = cX + (0.2*s*Math.cos(bkRad) + 0.55*s*Math.cos(outRad)).toNumber();
+        var owY = cY - (0.2*s*Math.sin(bkRad) + 0.55*s*Math.sin(outRad)).toNumber();
+
+        // Outer wing trailing edge (narrows back)
+        var otX = cX + (0.3*s*Math.cos(bkRad) + 0.15*s*Math.cos(outRad)).toNumber();
+        var otY = cY - (0.3*s*Math.sin(bkRad) + 0.15*s*Math.sin(outRad)).toNumber();
+
+        // Outer tail fin
+        var ofX = cX + (0.55*s*Math.cos(bkRad) + 0.2*s*Math.cos(outRad)).toNumber();
+        var ofY = cY - (0.55*s*Math.sin(bkRad) + 0.2*s*Math.sin(outRad)).toNumber();
+
+        // Engine notch (concave tail center)
+        var tX = cX + (0.35*s*Math.cos(bkRad)).toNumber();
+        var tY = cY - (0.35*s*Math.sin(bkRad)).toNumber();
+
+        // Inner tail fin
+        var ifX = cX + (0.55*s*Math.cos(bkRad) + 0.2*s*Math.cos(inRad)).toNumber();
+        var ifY = cY - (0.55*s*Math.sin(bkRad) + 0.2*s*Math.sin(inRad)).toNumber();
+
+        // Inner wing trailing edge
+        var itrX = cX + (0.3*s*Math.cos(bkRad) + 0.15*s*Math.cos(inRad)).toNumber();
+        var itrY = cY - (0.3*s*Math.sin(bkRad) + 0.15*s*Math.sin(inRad)).toNumber();
+
+        // Inner wing tip
+        var iwX = cX + (0.2*s*Math.cos(bkRad) + 0.55*s*Math.cos(inRad)).toNumber();
+        var iwY = cY - (0.2*s*Math.sin(bkRad) + 0.55*s*Math.sin(inRad)).toNumber();
+
+        // Inner shoulder
+        var isX = cX + (0.15*s*Math.cos(fwdRad) + 0.12*s*Math.cos(inRad)).toNumber();
+        var isY = cY - (0.15*s*Math.sin(fwdRad) + 0.12*s*Math.sin(inRad)).toNumber();
 
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.setPenWidth(2);
-        dc.drawLine(tipX, tipY, p1x, p1y);
-        dc.drawLine(tipX, tipY, p2x, p2y);
-        dc.drawLine(p1x, p1y, p2x, p2y);
+        dc.fillPolygon([
+            [nX,nY], [osX,osY], [owX,owY], [otX,otY], [ofX,ofY],
+            [tX,tY],
+            [ifX,ifY], [itrX,itrY], [iwX,iwY], [isX,isY]
+        ]);
     }
 }
