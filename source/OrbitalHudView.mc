@@ -33,6 +33,9 @@ class OrbitalHudView extends WatchUi.WatchFace {
     // ── Rocket sprites (8 rotations, every 45°) ──
     private var _rockets as Array<Graphics.BitmapType> = [] as Array<Graphics.BitmapType>;
 
+    // ── Planet animation (60 frames, one per second) ──
+    private var _planet as Array<Graphics.BitmapType> = [] as Array<Graphics.BitmapType>;
+
     function initialize() {
         WatchFace.initialize();
     }
@@ -50,6 +53,70 @@ class OrbitalHudView extends WatchUi.WatchFace {
         _fTimeLg = dc.getFontHeight(_timeFontLg);
         _fTimeSm = dc.getFontHeight(_timeFontSm);
         _fData = dc.getFontHeight(_dataFont);
+
+        // Load planet frames (60 frames, one per second)
+        _planet = [
+            WatchUi.loadResource(Rez.Drawables.Planet01) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet02) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet03) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet04) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet05) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet06) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet07) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet08) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet09) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet10) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet11) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet12) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet13) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet14) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet15) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet16) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet17) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet18) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet19) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet20) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet21) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet22) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet23) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet24) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet25) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet26) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet27) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet28) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet29) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet30) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet31) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet32) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet33) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet34) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet35) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet36) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet37) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet38) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet39) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet40) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet41) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet42) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet43) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet44) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet45) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet46) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet47) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet48) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet49) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet50) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet51) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet52) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet53) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet54) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet55) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet56) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet57) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet58) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet59) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Planet60) as Graphics.BitmapType
+        ];
 
         // Load rocket sprites (8 headings: 0°, 45°, 90°, ... 315°)
         _rockets = [
@@ -278,17 +345,24 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_cx, timeY, _timeFontLg, timeStr, Graphics.TEXT_JUSTIFY_CENTER);
 
-        // Seconds baseline-aligned with time, at right edge
         var timeDims = dc.getTextDimensions(timeStr, _timeFontLg);
         var timeW = timeDims[0];
-        _ssX = _cx + timeW / 2 + 2;
-        // Baseline-align: ascent ratio for Departure Mono is 11/14 of lineHeight
-        _ssY = timeY + (_fTimeLg - _fTimeSm) * 11 / 14;
+        var midY = timeY + _fTimeLg / 2;
+
+        // Seconds: vertically centered with time, spaced right
+        _ssX = _cx + timeW / 2 + 8;
+        _ssY = midY - _fTimeSm / 2;
         _ssW = 50;
         _ssH = _fTimeSm + 4;
 
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.drawText(_ssX, _ssY, _timeFontSm, ":" + clockTime.sec.format("%02d"), Graphics.TEXT_JUSTIFY_LEFT);
+
+        // Planet: vertically centered with time, spaced left
+        var planetX = _cx - timeW / 2 - 38;
+        var planetY = midY - 15;
+        var frame = clockTime.sec % 60;
+        dc.drawBitmap(planetX, planetY, _planet[frame]);
     }
 
     // ── Bottom Bar: Sunrise + Sunset ──
