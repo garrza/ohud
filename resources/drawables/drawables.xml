@@ -1,3 +1,11 @@
 <drawables>
     <bitmap id="LauncherIcon" filename="launcher_icon.png" />
+    <bitmap id="Rocket0" filename="rocket_0.png" />
+    <bitmap id="Rocket1" filename="rocket_1.png" />
+    <bitmap id="Rocket2" filename="rocket_2.png" />
+    <bitmap id="Rocket3" filename="rocket_3.png" />
+    <bitmap id="Rocket4" filename="rocket_4.png" />
+    <bitmap id="Rocket5" filename="rocket_5.png" />
+    <bitmap id="Rocket6" filename="rocket_6.png" />
+    <bitmap id="Rocket7" filename="rocket_7.png" />
 </drawables>

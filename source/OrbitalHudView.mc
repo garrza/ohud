@@ -30,6 +30,9 @@ class OrbitalHudView extends WatchUi.WatchFace {
     private var _ssW as Number = 50;
     private var _ssH as Number = 24;
 
+    // ── Rocket sprites (8 rotations, every 45°) ──
+    private var _rockets as Array<Graphics.BitmapType> = [] as Array<Graphics.BitmapType>;
+
     function initialize() {
         WatchFace.initialize();
     }
@@ -47,6 +50,18 @@ class OrbitalHudView extends WatchUi.WatchFace {
         _fTimeLg = dc.getFontHeight(_timeFontLg);
         _fTimeSm = dc.getFontHeight(_timeFontSm);
         _fData = dc.getFontHeight(_dataFont);
+
+        // Load rocket sprites (8 headings: 0°, 45°, 90°, ... 315°)
+        _rockets = [
+            WatchUi.loadResource(Rez.Drawables.Rocket0) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket1) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket2) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket3) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket4) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket5) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket6) as Graphics.BitmapType,
+            WatchUi.loadResource(Rez.Drawables.Rocket7) as Graphics.BitmapType
+        ];
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -65,7 +80,6 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
 
         // Draw back to front
-        drawSecondsRing(dc);
         drawCornerBrackets(dc);
         drawInfoBar(dc);
         drawSeparator(dc, 34);
@@ -76,6 +90,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         drawTime(dc);
         drawSeparator(dc, 216);
         drawBottomBar(dc);
+        drawSecondsRing(dc);
     }
 
     function onPartialUpdate(dc as Graphics.Dc) as Void {
@@ -317,12 +332,6 @@ class OrbitalHudView extends WatchUi.WatchFace {
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
         dc.drawArc(_cx, _cy, radius, Graphics.ARC_CLOCKWISE, 0, 1);
 
-        // Spaceship at current second position
-        var fillDeg = (sec.toFloat() / 60.0 * 360.0).toNumber();
-        if (fillDeg > 0) {
-            DrawUtils.drawArrowhead(dc, _cx, _cy, radius, 90.0 - fillDeg.toFloat(), DataManager.getColor(DataManager.CLR_PRIMARY), 12);
-        }
-
         // Tick marks at 15s intervals (12/3/6/9 positions = 90/0/270/180 degrees)
         dc.setPenWidth(1);
         dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
@@ -335,6 +344,20 @@ class OrbitalHudView extends WatchUi.WatchFace {
             var y2 = _cy - ((radius + 4) * Math.sin(rad)).toNumber();
             dc.drawLine(x1, y1, x2, y2);
         }
+
+        // Rocket sprite at current second position (drawn last = on top)
+        var fillDeg = (sec.toFloat() / 60.0 * 360.0).toNumber();
+        var posAngle = 90.0 - fillDeg.toFloat();
+        var posRad = Math.toRadians(posAngle);
+
+        var rX = _cx + (radius * Math.cos(posRad)).toNumber();
+        var rY = _cy - (radius * Math.sin(posRad)).toNumber();
+
+        var heading = posAngle - 90.0;
+        if (heading < 0.0) { heading += 360.0; }
+
+        var idx = ((heading + 22.5) / 45.0).toNumber() % 8;
+        dc.drawBitmap(rX - 6, rY - 6, _rockets[idx]);
     }
 
     // ── Helper: horizontal margin for round display at given Y ──
