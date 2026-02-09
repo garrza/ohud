@@ -8,6 +8,7 @@ import Toybox.Weather;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
 import Toybox.Math;
+import Toybox.Position;
 
 module DataManager {
 
@@ -68,6 +69,12 @@ module DataManager {
     var cachedHR as Number = 0;
     var cachedStress as Number = 0;
     var cachedSpO2 as Number = 0;
+
+    // ── Cached Sun Data ──
+    var cachedSunrise as String = "--:--";
+    var cachedSunset as String = "--:--";
+    var cachedSunLoc as Position.Location or Null = null;
+    var lastSunCalcMin as Number = -1;
 
     // ── HR History Sparkline (rolling buffer of live readings) ──
     const HR_BUFFER_SIZE = 30;
@@ -265,52 +272,65 @@ module DataManager {
         return "--M";
     }
 
-    function fetchSunTimes() as String {
+    // Recalculate sunrise/sunset every 15 minutes, cache location + results
+    function updateSunTimes() as Void {
+        var clockTime = System.getClockTime();
+        var currentMin = clockTime.hour * 60 + clockTime.min;
+
+        // Skip recalc if we already have values and it's been < 15 min
+        if (lastSunCalcMin >= 0 && !cachedSunrise.equals("--:--")) {
+            var diff = currentMin - lastSunCalcMin;
+            if (diff < 0) { diff += 1440; } // handle midnight wrap
+            if (diff < 15) { return; }
+        }
+
         try {
+            var loc = null as Position.Location or Null;
+
+            // Try weather conditions for location
             var cond = Weather.getCurrentConditions();
             if (cond != null && cond.observationLocationPosition != null) {
-                var loc = cond.observationLocationPosition;
+                loc = cond.observationLocationPosition;
+                cachedSunLoc = loc;
+            } else if (cachedSunLoc != null) {
+                // Reuse last known location if weather is temporarily unavailable
+                loc = cachedSunLoc;
+            }
+
+            // Fallback: try last known GPS position from activity
+            if (loc == null) {
+                var actInfo = Activity.getActivityInfo();
+                if (actInfo != null && actInfo.currentLocation != null) {
+                    loc = actInfo.currentLocation;
+                    cachedSunLoc = loc;
+                }
+            }
+
+            if (loc != null) {
                 var now = Time.now();
                 var rise = Weather.getSunrise(loc, now);
                 if (rise != null) {
                     var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                    return (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                    cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
                 }
+                var setMoment = Weather.getSunset(loc, now);
+                if (setMoment != null) {
+                    var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
+                    cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                }
+                lastSunCalcMin = currentMin;
             }
         } catch (e) {}
-        return "--:--";
     }
 
     function fetchSunrise() as String {
-        try {
-            var cond = Weather.getCurrentConditions();
-            if (cond != null && cond.observationLocationPosition != null) {
-                var loc = cond.observationLocationPosition;
-                var now = Time.now();
-                var rise = Weather.getSunrise(loc, now);
-                if (rise != null) {
-                    var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                    return (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
-                }
-            }
-        } catch (e) {}
-        return "--:--";
+        updateSunTimes();
+        return cachedSunrise;
     }
 
     function fetchSunset() as String {
-        try {
-            var cond = Weather.getCurrentConditions();
-            if (cond != null && cond.observationLocationPosition != null) {
-                var loc = cond.observationLocationPosition;
-                var now = Time.now();
-                var set = Weather.getSunset(loc, now);
-                if (set != null) {
-                    var sInfo = Gregorian.info(set, Time.FORMAT_SHORT);
-                    return (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
-                }
-            }
-        } catch (e) {}
-        return "--:--";
+        updateSunTimes();
+        return cachedSunset;
     }
 
     function fetchWeather() as String {
