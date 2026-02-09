@@ -9,6 +9,7 @@ import Toybox.Time;
 import Toybox.Time.Gregorian;
 import Toybox.Math;
 import Toybox.Position;
+import Toybox.UserProfile;
 
 module DataManager {
 
@@ -382,6 +383,13 @@ module DataManager {
 
     function fetchVO2Max() as String {
         try {
+            // Try UserProfile first (where VO2 max is stored on some devices)
+            var profile = UserProfile.getProfile();
+            if (profile != null && profile has :vo2maxRunning && profile.vo2maxRunning != null) {
+                return (profile.vo2maxRunning as Number).toString();
+            }
+
+            // Fall back to ActivityMonitor
             var info = ActivityMonitor.getInfo();
             if (info has :vo2maxRunning && info.vo2maxRunning != null) {
                 return (info.vo2maxRunning as Number).toString();
