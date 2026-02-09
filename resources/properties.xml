@@ -8,14 +8,14 @@
     <property id="ShowRange" type="boolean">true</property>
     <property id="ShowActive" type="boolean">true</property>
     <property id="ShowAlt" type="boolean">true</property>
-    <property id="ShowSol" type="boolean">true</property>
+    <property id="ShowSteps" type="boolean">true</property>
     <property id="ShowAtmo" type="boolean">true</property>
     <property id="ShowPress" type="boolean">true</property>
-    <property id="ShowTemp" type="boolean">true</property>
+    <property id="ShowBattery" type="boolean">true</property>
     <property id="ShowResp" type="boolean">true</property>
     <property id="ShowVO2" type="boolean">true</property>
-    <property id="ShowReady" type="boolean">true</property>
-    <property id="ShowHRV" type="boolean">true</property>
-    <property id="ShowSleep" type="boolean">true</property>
+    <property id="ShowReady" type="boolean">false</property>
+    <property id="ShowHRV" type="boolean">false</property>
+    <property id="ShowSleep" type="boolean">false</property>
     <property id="ShowRecov" type="boolean">true</property>
 </properties>

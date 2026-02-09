@@ -41,7 +41,7 @@
     <setting propertyKey="@Properties.ShowAlt" title="@Strings.ShowAltLabel">
         <settingConfig type="boolean" />
     </setting>
-    <setting propertyKey="@Properties.ShowSol" title="@Strings.ShowSolLabel">
+    <setting propertyKey="@Properties.ShowSteps" title="@Strings.ShowStepsLabel">
         <settingConfig type="boolean" />
     </setting>
     <setting propertyKey="@Properties.ShowAtmo" title="@Strings.ShowAtmoLabel">
@@ -50,7 +50,7 @@
     <setting propertyKey="@Properties.ShowPress" title="@Strings.ShowPressLabel">
         <settingConfig type="boolean" />
     </setting>
-    <setting propertyKey="@Properties.ShowTemp" title="@Strings.ShowTempLabel">
+    <setting propertyKey="@Properties.ShowBattery" title="@Strings.ShowBatteryLabel">
         <settingConfig type="boolean" />
     </setting>
     <setting propertyKey="@Properties.ShowResp" title="@Strings.ShowRespLabel">

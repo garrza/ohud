@@ -17,12 +17,12 @@
     <string id="ShowRangeLabel">Show Distance</string>
     <string id="ShowActiveLabel">Show Active Minutes</string>
     <string id="ShowAltLabel">Show Altitude</string>
-    <string id="ShowSolLabel">Show Sunrise/Sunset</string>
+    <string id="ShowStepsLabel">Show Steps</string>
     <string id="ShowAtmoLabel">Show Weather</string>
     <string id="ShowPressLabel">Show Pressure</string>
-    <string id="ShowTempLabel">Show Temperature</string>
+    <string id="ShowBatteryLabel">Show Battery</string>
     <string id="ShowRespLabel">Show Respiration</string>
-    <string id="ShowVO2Label">Show VO2 Max</string>
+    <string id="ShowVO2Label">Show VO2 Max (Running)</string>
     <string id="ShowReadyLabel">Show Readiness</string>
     <string id="ShowHRVLabel">Show HRV</string>
     <string id="ShowSleepLabel">Show Sleep</string>
