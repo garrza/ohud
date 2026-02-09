@@ -2,7 +2,7 @@
 
 A spacecraft-themed watch face for Garmin (currently only for fenix 7).
 
-![Orbital HUD](ohud-clip.gif)
+![Orbital HUD](assets/ohud-clip.gif)
 
 **[Download on the Connect IQ Store](https://apps.garmin.com/apps/9bafd9ee-a64b-49ed-8048-3638442c8a8e)**
 
