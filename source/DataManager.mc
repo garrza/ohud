@@ -294,7 +294,6 @@ module DataManager {
                 loc = cond.observationLocationPosition;
                 cachedSunLoc = loc;
             } else if (cachedSunLoc != null) {
-                // Reuse last known location if weather is temporarily unavailable
                 loc = cachedSunLoc;
             }
 
@@ -308,20 +307,115 @@ module DataManager {
             }
 
             if (loc != null) {
-                var now = Time.now();
-                var rise = Weather.getSunrise(loc, now);
-                if (rise != null) {
-                    var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                    cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                var gotSunrise = false;
+                var gotSunset = false;
+
+                // Try Weather API first (requires CIQ 3.3.0+ / System 5 firmware)
+                if (Weather has :getSunrise) {
+                    var now = Time.now();
+                    var rise = Weather.getSunrise(loc, now);
+                    if (rise != null) {
+                        var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
+                        cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                        gotSunrise = true;
+                    }
                 }
-                var setMoment = Weather.getSunset(loc, now);
-                if (setMoment != null) {
-                    var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
-                    cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                if (Weather has :getSunset) {
+                    var now = Time.now();
+                    var setMoment = Weather.getSunset(loc, now);
+                    if (setMoment != null) {
+                        var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
+                        cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                        gotSunset = true;
+                    }
                 }
+
+                // Fallback: NOAA solar algorithm for devices without Weather API
+                if (!gotSunrise || !gotSunset) {
+                    var degrees = loc.toDegrees();
+                    var latDeg = degrees[0] as Double;
+                    var lngDeg = degrees[1] as Double;
+                    var doy = getDayOfYear();
+                    var tzSec = clockTime.timeZoneOffset;
+                    if (!gotSunrise) {
+                        var sr = calcSunTime(latDeg, lngDeg, doy, tzSec, true);
+                        if (sr != null) { cachedSunrise = sr; }
+                    }
+                    if (!gotSunset) {
+                        var ss = calcSunTime(latDeg, lngDeg, doy, tzSec, false);
+                        if (ss != null) { cachedSunset = ss; }
+                    }
+                }
+
                 lastSunCalcMin = currentMin;
             }
         } catch (e) {}
+    }
+
+    // NOAA solar position algorithm — compute sunrise or sunset time
+    // Returns "HH:MM" string in local time, or null for polar no-rise/no-set
+    function calcSunTime(latDeg as Double, lngDeg as Double, dayOfYear as Number,
+                         tzOffsetSec as Number, isSunrise as Boolean) as String or Null {
+        var PI = 3.14159265358979;
+        var gamma = 2.0 * PI / 365.0 * (dayOfYear - 1);
+
+        // Equation of time (minutes)
+        var eqTime = 229.18 * (0.000075 + 0.001868 * Math.cos(gamma)
+            - 0.032077 * Math.sin(gamma)
+            - 0.014615 * Math.cos(2.0 * gamma)
+            - 0.040849 * Math.sin(2.0 * gamma));
+
+        // Solar declination (radians)
+        var decl = 0.006918 - 0.399912 * Math.cos(gamma)
+            + 0.070257 * Math.sin(gamma)
+            - 0.006758 * Math.cos(2.0 * gamma)
+            + 0.000907 * Math.sin(2.0 * gamma)
+            - 0.002697 * Math.cos(3.0 * gamma)
+            + 0.00148 * Math.sin(3.0 * gamma);
+
+        // Hour angle for official sunrise/sunset (zenith 90.833°)
+        var latRad = latDeg * PI / 180.0;
+        var zenRad = 90.833 * PI / 180.0;
+        var denom = Math.cos(latRad) * Math.cos(decl);
+        if (denom == 0.0) { return null; }
+        var cosHA = (Math.cos(zenRad) - Math.sin(latRad) * Math.sin(decl)) / denom;
+
+        if (cosHA > 1.0 || cosHA < -1.0) {
+            return null; // Polar region — no sunrise or no sunset
+        }
+
+        var haDeg = Math.acos(cosHA) * 180.0 / PI;
+
+        var sunMinUTC = 0.0;
+        if (isSunrise) {
+            sunMinUTC = 720.0 - 4.0 * (lngDeg + haDeg) - eqTime;
+        } else {
+            sunMinUTC = 720.0 - 4.0 * (lngDeg - haDeg) - eqTime;
+        }
+
+        var sunMinLocal = sunMinUTC + tzOffsetSec.toFloat() / 60.0;
+        if (sunMinLocal < 0.0) { sunMinLocal += 1440.0; }
+        if (sunMinLocal >= 1440.0) { sunMinLocal -= 1440.0; }
+
+        var totalMin = sunMinLocal.toNumber();
+        var hour = totalMin / 60;
+        var min = totalMin % 60;
+        return hour.format("%02d") + ":" + min.format("%02d");
+    }
+
+    function getDayOfYear() as Number {
+        var info = Gregorian.info(Time.now(), Time.FORMAT_SHORT);
+        var year = info.year as Number;
+        var month = info.month as Number;
+        var day = info.day as Number;
+        var daysInMonth = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+        if ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)) {
+            daysInMonth[1] = 29;
+        }
+        var doy = 0;
+        for (var i = 0; i < month - 1; i++) { doy += daysInMonth[i]; }
+        doy += day;
+        return doy;
     }
 
     function fetchSunrise() as String {
