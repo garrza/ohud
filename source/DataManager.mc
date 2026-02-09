@@ -69,13 +69,17 @@ module DataManager {
     var cachedStress as Number = 0;
     var cachedSpO2 as Number = 0;
 
-    // ── ECG Sparkline ──
-    const ECG_PATTERN = [
-        0.1, 0.1, 0.12, 0.1, 0.15, 0.1, 0.08,
-        0.1, 0.3, 0.9, 0.2, 0.05, 0.15, 0.25,
-        0.2, 0.12, 0.1, 0.1, 0.1, 0.1
-    ];
-    var ecgOffset as Number = 0;
+    // ── HR History Sparkline (rolling buffer of live readings) ──
+    const HR_BUFFER_SIZE = 30;
+    var hrHistory as Array<Number> = [] as Array<Number>;
+
+    function pushHrSample() as Void {
+        if (cachedHR <= 0) { return; }
+        hrHistory.add(cachedHR);
+        if (hrHistory.size() > HR_BUFFER_SIZE) {
+            hrHistory = hrHistory.slice(hrHistory.size() - HR_BUFFER_SIZE, null) as Array<Number>;
+        }
+    }
 
     function loadSettings() as Void {
         var app = Application.getApp();

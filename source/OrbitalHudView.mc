@@ -481,7 +481,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         DataManager.fetchSpO2();
 
         if (_isHighPower) {
-            DataManager.ecgOffset = (DataManager.ecgOffset + 1) % 20;
+            DataManager.pushHrSample();
         }
 
         // Draw back to front
@@ -489,7 +489,7 @@ class OrbitalHudView extends WatchUi.WatchFace {
         drawInfoBar(dc);
         drawSeparator(dc, 34);
         drawRow1(dc);
-        drawEcgWave(dc, 35, 61, _w - 70, 5);
+        drawHrSparkline(dc, 35, 61, _w - 70, 5);
         drawDataRows(dc);
         drawScanLines(dc);
         drawTime(dc);
@@ -603,18 +603,35 @@ class OrbitalHudView extends WatchUi.WatchFace {
         }
     }
 
-    // ── ECG Waveform ──
-    private function drawEcgWave(dc as Graphics.Dc, x as Number, y as Number, w as Number, h as Number) as Void {
-        var points = DataManager.ECG_PATTERN.size();
-        var stepX = w.toFloat() / (points - 1).toFloat();
-        var offset = _isHighPower ? DataManager.ecgOffset : 0;
+    // ── HR History Sparkline (real data) ──
+    private function drawHrSparkline(dc as Graphics.Dc, x as Number, y as Number, w as Number, h as Number) as Void {
+        var data = DataManager.hrHistory;
+        var count = data.size();
+        if (count < 2) {
+            // No data — draw flat dim line
+            dc.setColor(DataManager.getColor(DataManager.CLR_DIM), Graphics.COLOR_TRANSPARENT);
+            dc.setPenWidth(1);
+            dc.drawLine(x, y + h, x + w, y + h);
+            return;
+        }
+
+        // Find min/max for normalization
+        var minHr = data[0] as Number;
+        var maxHr = data[0] as Number;
+        for (var i = 1; i < count; i++) {
+            var v = data[i] as Number;
+            if (v < minHr) { minHr = v; }
+            if (v > maxHr) { maxHr = v; }
+        }
+        var range = maxHr - minHr;
+        if (range < 5) { range = 5; } // Avoid flat line for stable HR
+
+        var stepX = w.toFloat() / (count - 1).toFloat();
         dc.setColor(DataManager.getColor(DataManager.CLR_PRIMARY), Graphics.COLOR_TRANSPARENT);
         dc.setPenWidth(1);
-        for (var i = 0; i < points - 1; i++) {
-            var idx1 = (i + offset) % points;
-            var idx2 = (i + 1 + offset) % points;
-            var v1 = (DataManager.ECG_PATTERN as Array<Float>)[idx1];
-            var v2 = (DataManager.ECG_PATTERN as Array<Float>)[idx2];
+        for (var i = 0; i < count - 1; i++) {
+            var v1 = ((data[i] as Number) - minHr).toFloat() / range.toFloat();
+            var v2 = ((data[i + 1] as Number) - minHr).toFloat() / range.toFloat();
             var x1 = x + (i * stepX).toNumber();
             var y1 = y + h - (v1 * h).toNumber();
             var x2 = x + ((i + 1) * stepX).toNumber();
