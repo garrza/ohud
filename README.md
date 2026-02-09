@@ -1,6 +1,6 @@
 # Orbital HUD
 
-A spacecraft-themed watch face for Garmin fenix 7.
+A spacecraft-themed watch face for Garmin (currently only for fenix 7).
 
 ![Orbital HUD](ohud-clip.gif)
 
