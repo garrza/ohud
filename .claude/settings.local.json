@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(unzip:*)",
+      "Bash(ffprobe:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(monkeyc:*)",
+      "Bash(monkeydo:*)",
+      "Bash(open:*)",
+      "Bash(connectiq:*)",
+      "Bash(mdfind:*)",
+      "Bash(7z l:*)",
+      "WebSearch",
+      "WebFetch(domain:forums.garmin.com)",
+      "WebFetch(domain:developer.garmin.com)"
+    ]
+  }
+}
