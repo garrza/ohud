@@ -285,71 +285,97 @@ module DataManager {
             if (diff < 15) { return; }
         }
 
-        try {
-            var loc = null as Position.Location or Null;
+        var loc = null as Position.Location or Null;
 
-            // Try weather conditions for location
+        // 1) Try weather conditions for location
+        try {
             var cond = Weather.getCurrentConditions();
             if (cond != null && cond.observationLocationPosition != null) {
                 loc = cond.observationLocationPosition;
                 cachedSunLoc = loc;
-            } else if (cachedSunLoc != null) {
-                loc = cachedSunLoc;
             }
+        } catch (e) {}
 
-            // Fallback: try last known GPS position from activity
-            if (loc == null) {
+        // 2) Fallback: cached location from a previous success
+        if (loc == null && cachedSunLoc != null) {
+            loc = cachedSunLoc;
+        }
+
+        // 3) Fallback: last known GPS position from activity
+        if (loc == null) {
+            try {
                 var actInfo = Activity.getActivityInfo();
                 if (actInfo != null && actInfo.currentLocation != null) {
                     loc = actInfo.currentLocation;
                     cachedSunLoc = loc;
                 }
-            }
+            } catch (e) {}
+        }
 
-            if (loc != null) {
-                var gotSunrise = false;
-                var gotSunset = false;
-
-                // Try Weather API first (requires CIQ 3.3.0+ / System 5 firmware)
-                if (Weather has :getSunrise) {
-                    var now = Time.now();
-                    var rise = Weather.getSunrise(loc, now);
-                    if (rise != null) {
-                        var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                        cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
-                        gotSunrise = true;
-                    }
+        // 4) Fallback: device's last known position (requires Positioning permission)
+        if (loc == null) {
+            try {
+                var posInfo = Position.getInfo();
+                if (posInfo.position != null && posInfo.accuracy != Position.QUALITY_NOT_AVAILABLE) {
+                    loc = posInfo.position;
+                    cachedSunLoc = loc;
                 }
-                if (Weather has :getSunset) {
-                    var now = Time.now();
-                    var setMoment = Weather.getSunset(loc, now);
-                    if (setMoment != null) {
-                        var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
-                        cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
-                        gotSunset = true;
-                    }
-                }
+            } catch (e) {}
+        }
 
-                // Fallback: NOAA solar algorithm for devices without Weather API
-                if (!gotSunrise || !gotSunset) {
-                    var degrees = loc.toDegrees();
-                    var latDeg = degrees[0] as Double;
-                    var lngDeg = degrees[1] as Double;
-                    var doy = getDayOfYear();
-                    var tzSec = clockTime.timeZoneOffset;
-                    if (!gotSunrise) {
-                        var sr = calcSunTime(latDeg, lngDeg, doy, tzSec, true);
-                        if (sr != null) { cachedSunrise = sr; }
-                    }
-                    if (!gotSunset) {
-                        var ss = calcSunTime(latDeg, lngDeg, doy, tzSec, false);
-                        if (ss != null) { cachedSunset = ss; }
-                    }
-                }
+        if (loc == null) { return; }
 
-                lastSunCalcMin = currentMin;
+        var gotSunrise = false;
+        var gotSunset = false;
+
+        // Try Weather API first (requires CIQ 3.3.0+ / System 5 firmware)
+        try {
+            if (Weather has :getSunrise) {
+                var now = Time.now();
+                var rise = Weather.getSunrise(loc, now);
+                if (rise != null) {
+                    var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
+                    cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                    gotSunrise = true;
+                }
             }
         } catch (e) {}
+
+        try {
+            if (Weather has :getSunset) {
+                var now = Time.now();
+                var setMoment = Weather.getSunset(loc, now);
+                if (setMoment != null) {
+                    var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
+                    cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                    gotSunset = true;
+                }
+            }
+        } catch (e) {}
+
+        // Fallback: NOAA solar algorithm for devices without Weather API
+        if (!gotSunrise || !gotSunset) {
+            try {
+                var degrees = loc.toDegrees();
+                var latDeg = degrees[0] as Double;
+                var lngDeg = degrees[1] as Double;
+                var doy = getDayOfYear();
+                var tzSec = clockTime.timeZoneOffset;
+                if (!gotSunrise) {
+                    var sr = calcSunTime(latDeg, lngDeg, doy, tzSec, true);
+                    if (sr != null) { cachedSunrise = sr; gotSunrise = true; }
+                }
+                if (!gotSunset) {
+                    var ss = calcSunTime(latDeg, lngDeg, doy, tzSec, false);
+                    if (ss != null) { cachedSunset = ss; gotSunset = true; }
+                }
+            } catch (e) {}
+        }
+
+        // Only mark as computed if we actually got results
+        if (gotSunrise || gotSunset) {
+            lastSunCalcMin = currentMin;
+        }
     }
 
     // NOAA solar position algorithm — compute sunrise or sunset time
