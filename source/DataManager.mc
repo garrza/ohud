@@ -335,7 +335,7 @@ module DataManager {
                 var rise = Weather.getSunrise(loc, now);
                 if (rise != null) {
                     var rInfo = Gregorian.info(rise, Time.FORMAT_SHORT);
-                    cachedSunrise = (rInfo.hour as Number).format("%02d") + ":" + (rInfo.min as Number).format("%02d");
+                    cachedSunrise = formatHourMin(rInfo.hour as Number, rInfo.min as Number);
                     gotSunrise = true;
                 }
             }
@@ -347,7 +347,7 @@ module DataManager {
                 var setMoment = Weather.getSunset(loc, now);
                 if (setMoment != null) {
                     var sInfo = Gregorian.info(setMoment, Time.FORMAT_SHORT);
-                    cachedSunset = (sInfo.hour as Number).format("%02d") + ":" + (sInfo.min as Number).format("%02d");
+                    cachedSunset = formatHourMin(sInfo.hour as Number, sInfo.min as Number);
                     gotSunset = true;
                 }
             }
@@ -426,7 +426,7 @@ module DataManager {
         var totalMin = sunMinLocal.toNumber();
         var hour = totalMin / 60;
         var min = totalMin % 60;
-        return hour.format("%02d") + ":" + min.format("%02d");
+        return formatHourMin(hour, min);
     }
 
     function getDayOfYear() as Number {
@@ -541,6 +541,14 @@ module DataManager {
     }
 
     // ── Helpers ──
+
+    function formatHourMin(hour as Number, min as Number) as String {
+        if (!System.getDeviceSettings().is24Hour) {
+            if (hour == 0) { hour = 12; }
+            else if (hour > 12) { hour = hour - 12; }
+        }
+        return hour.format("%02d") + ":" + min.format("%02d");
+    }
 
     function formatNumber(n as Number) as String {
         if (n >= 1000) {
